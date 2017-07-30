@@ -1,0 +1,22 @@
+<h1>My Stateful Component</h1>
+
+Current State: {{ currentState }}
+
+<br>
+
+<button onclick={{action "doStuff"}}>doStuff</button>
+<button onclick={{action "turnOn"}}>turnOn</button>
+<button onclick={{action "bang"}}>bang</button>
+
+<h2>if statements</h2>
+
+{{#if state.off}}
+  Off.<br>
+{{else if state.on}}
+  On.
+  {{#if state.on.idle}}
+    Idle.<br>
+  {{else if state.on.active}}
+    Active.<br>
+  {{/if}}
+{{/if}}
