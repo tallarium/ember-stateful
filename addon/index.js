@@ -69,7 +69,7 @@ export default Ember.Mixin.create({
         // we don't use Ember.set here, because keys will contain periods
         stateToDefaultStateMap[parentState] = thisState;
         const partlyActionsHash = this.get(`actions.${thisState}`) || {};
-        Object.keys(partlyActionsHash).forEach(actionName => {
+        Object.keys(partlyActionsHash).filter(actionName => actionName !== '_enter' && actionName !== '_exit').forEach(actionName => {
           const maybeAction = partlyActionsHash[actionName];
           if (Ember.isNone(newRootStateActions[actionName])) {
             const rootAction = this.actions[actionName];
@@ -110,6 +110,36 @@ export default Ember.Mixin.create({
   },
 
   transitionTo(state) {
+    const fromState = this.get('currentState');
     this.set('currentState', state);
+    const toState = this.get('currentState');
+
+    const exitingStates = [];
+    const fromStateParts = fromState.split('.')
+    while (toState.slice(0, fromStateParts.join('.').length) !== fromStateParts.join('.')) {
+      exitingStates.push(fromStateParts.join('.'));
+      fromStateParts.pop();
+    }
+
+    const enteringStates = [];
+    const toStateParts = toState.split('.');
+    while (fromState.slice(0, toStateParts.join('.').length) !== toStateParts.join('.')) {
+      enteringStates.unshift(toStateParts.join('.'))
+      toStateParts.pop();
+    }
+
+    exitingStates.forEach(exitingState => {
+      const exitAction = this.get(`actions.${exitingState}._exit`);
+      if (exitAction) {
+        exitAction.call(this);
+      }
+    });
+
+    enteringStates.forEach(enteringState => {
+      const enterAction = this.get(`actions.${enteringState}._enter`);
+      if (enterAction) {
+        enterAction.call(this);
+      }
+    });
   },
 });

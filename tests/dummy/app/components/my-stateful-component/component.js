@@ -10,6 +10,18 @@ export default Ember.Component.extend(Stateful, {
     'on.active.walking',
   ],
 
+  off: {
+
+    dead: {
+      _enter() {
+        console.log('entering state off.dead');
+      },
+      _exit() {
+        console.log('exiting state off.dead');
+      },
+    }
+  },
+
   actions: {
 
     doStuff(...args) {
@@ -26,11 +38,23 @@ export default Ember.Component.extend(Stateful, {
     },
 
     on: {
+      _enter() {
+        console.log('entering state on');
+      },
+      _exit() {
+        console.log('exiting state on');
+      },
       turnOn() {
         console.log('already on');
       },
 
       idle: {
+        _enter() {
+          console.log('entering state on.idle');
+        },
+        _exit() {
+          console.log('exiting state on.idle');
+        },
         doStuff() {
           console.log('idling');
           console.log('becoming active');
@@ -39,6 +63,12 @@ export default Ember.Component.extend(Stateful, {
       },
 
       active: {
+        _enter() {
+          console.log('entering state on.active');
+        },
+        _exit() {
+          console.log('exiting state on.active');
+        },
         doStuff() {
           console.log('activity');
         },
@@ -46,6 +76,12 @@ export default Ember.Component.extend(Stateful, {
     },
 
     off: {
+      _enter() {
+        console.log('entering state off');
+      },
+      _exit() {
+        console.log('exiting state off');
+      },
       turnOn() {
         console.log('turning on');
         return true;
@@ -54,6 +90,15 @@ export default Ember.Component.extend(Stateful, {
       doStuff(...args) {
         console.log('off action', ...args);
         return true;
+      },
+
+      dead: {
+        _enter() {
+          console.log('entering state off.dead');
+        },
+        _exit() {
+          console.log('exiting state off.dead');
+        },
       },
     },
   },
