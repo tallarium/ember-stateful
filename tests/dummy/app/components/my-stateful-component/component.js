@@ -4,7 +4,7 @@ import Stateful from 'ember-stateful';
 export default Ember.Component.extend(Stateful, {
 
   states: [
-    'off',
+    'off.dead',
     'on.active.dancing',
     'on.idle',
     'on.active.walking',

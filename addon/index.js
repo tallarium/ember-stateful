@@ -14,18 +14,10 @@ export default Ember.Mixin.create({
 
   currentState: computed({
     get() {
-      return this._defaultStateMapping[''];
+      return this._getTargetState('');
     },
     set(key, value) {
-      let targetState = value;
-      do {
-        value = targetState;
-        targetState = this._defaultStateMapping[value];
-      } while (!Ember.isNone(targetState) && targetState !== value)
-      if (Ember.isNone(targetState)) {
-        throw new Error(`Invalid state transition attempted. Unknown state: ${value}`);
-      }
-      return targetState;
+      return this._getTargetState(value);
     },
   }),
 
@@ -44,6 +36,18 @@ export default Ember.Mixin.create({
   }),
 
   _defaultStateMapping: undefined,
+
+  _getTargetState(value) {
+    let targetState = value;
+    do {
+      value = targetState;
+      targetState = this._defaultStateMapping[value];
+    } while (!Ember.isNone(targetState) && targetState !== value)
+    if (Ember.isNone(targetState)) {
+      throw new Error(`Invalid state transition attempted. Unknown state: ${value}`);
+    }
+    return targetState;
+  },
 
   init(...args) {
     this._super(...args);
