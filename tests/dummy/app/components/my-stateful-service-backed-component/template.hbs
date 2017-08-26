@@ -1,0 +1,10 @@
+<h1>My Stateful Service Backed Component</h1>
+
+Current Service State: {{myStatefulService.currentState}}
+
+<br>
+
+<button disabled={{state.online}} onclick={{action "connect"}}>connect</button>
+<button disabled={{state.online}} onclick={{action "cancelConnect"}}>cancel</button>
+<button disabled={{state.offline}} onclick={{action "disconnect"}}>disconnect</button>
+<button disabled={{state.offline}} onclick={{action "sync"}}>sync</button>
