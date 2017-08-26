@@ -60,7 +60,7 @@ export default Ember.Mixin.create({
         const parentState = stateParts.slice(0, -1).join('.');
         // we don't use Ember.set here, because keys will contain periods
         stateToDefaultStateMap[parentState] = thisState;
-        const partlyActionsHash = this.get(`actions.${thisState}`);
+        const partlyActionsHash = this.get(`actions.${thisState}`) || {};
         Object.keys(partlyActionsHash).forEach(actionName => {
           const maybeAction = partlyActionsHash[actionName];
           if (Ember.isNone(newRootStateActions[actionName])) {
