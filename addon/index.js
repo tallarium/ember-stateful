@@ -70,11 +70,10 @@ export default Ember.Mixin.create({
         stateToDefaultStateMap[parentState] = thisState;
         const partlyActionsHash = this.get(`actions.${thisState}`) || {};
         Object.keys(partlyActionsHash).filter(actionName => actionName !== '_enter' && actionName !== '_exit').forEach(actionName => {
-          const maybeAction = partlyActionsHash[actionName];
           if (Ember.isNone(newRootStateActions[actionName])) {
             const rootAction = this.actions[actionName];
             if (Ember.isNone(rootAction)) {
-              newRootStateActions[actionName] = function(...args) {
+              newRootStateActions[actionName] = function() {
                 throw new Error(`A root action named '${actionName}' was not found in ${this}`);
               }
             } else {
@@ -103,7 +102,7 @@ export default Ember.Mixin.create({
         shouldBubble = action.apply(this, args) === true;
       }
       stateParts.pop();
-    };
+    }
     if (shouldBubble) {
       this.actions._root[actionName].apply(this, args);
     }
