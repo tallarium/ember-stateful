@@ -7,28 +7,70 @@ const { computed } = Ember;
  */
 export default Ember.Mixin.create({
 
-  currentState: '',
+  /**
+   * you need to override this
+   */
+  states: undefined,
+
+  currentState: computed({
+    get() {
+      return this._defaultStateMapping[''];
+    },
+    set(key, value) {
+      const theState = this._defaultStateMapping[value];
+      if (Ember.isNone(theState)) {
+        throw new Error(`Invalid state transition attempted. Unknown state: ${value}`);
+      }
+      return theState;
+    },
+  }),
+
+  /**
+   * If the current State is 'a.b.c', this property is `{ a: { b: { c: {}}}}`
+   * The idea is to simplify state checks, e.g.
+   * `if (this.get('state.a.b')) { ... }` will work in state 'a.b.c' and 'a.b.d',
+   * epsecially for templates.
+   *
+   * @property {Object} state
+   */
+  state: computed('currentState', function() {
+    return this.get('currentState').split('.').reduceRight((acc, s) => {
+      return { [s]: acc };
+    }, {});
+  }),
+
+  _defaultStateMapping: undefined,
 
   init(...args) {
     this._super(...args);
     const states = this.get('states');
-    this.set('currentState', states[0]);
     // put some empty actions into the actions hash so components don't complain
-    const newRootActions = {};
-    states.forEach(state => {
+    const newRootStateActions = {};
+    const stateToDefaultStateMap = {};
+    // process in reverse order, because default states will be listed first
+    states.reverse().forEach(state => {
       let stateParts = state.split('.');
+      if (Ember.isNone(stateToDefaultStateMap[state])) {
+        stateToDefaultStateMap[state] = state;
+        // if stateToDefaultStateMap[state] is already set, the consumer
+        // used a redundant intermediate state
+      }
       while(stateParts.length > 0) {
-        const partlyActionsHash = this.get(`actions.${stateParts.join('.')}`); 
+        const thisState = stateParts.join('.');
+        const parentState = stateParts.slice(0, -1).join('.');
+        // we don't use Ember.set here, because keys will contain periods
+        stateToDefaultStateMap[parentState] = thisState;
+        const partlyActionsHash = this.get(`actions.${thisState}`);
         Object.keys(partlyActionsHash).forEach(actionName => {
           const maybeAction = partlyActionsHash[actionName];
-          if (Ember.isNone(newRootActions[actionName])) {
+          if (Ember.isNone(newRootStateActions[actionName])) {
             const rootAction = this.actions[actionName];
             if (Ember.isNone(rootAction)) {
-              newRootActions[actionName] = function(...args) {
+              newRootStateActions[actionName] = function(...args) {
                 throw new Error(`A root action named '${actionName}' was not found in ${this}`);
               }
             } else {
-              newRootActions[actionName] = rootAction;
+              newRootStateActions[actionName] = rootAction;
             }
             this.actions[actionName] = function(...args) {
               this.send(actionName, ...args);
@@ -38,22 +80,9 @@ export default Ember.Mixin.create({
         stateParts.pop();
       }
     });
-    this.actions._root = newRootActions;
+    this._defaultStateMapping = stateToDefaultStateMap;
+    this.actions._root = newRootStateActions;
   },
-
-  /**
-   * If the current State is 'a.b.c', this property is `{ a: { b: { c: {}}}}`
-   * The idea is to simplify state checks, e.g.
-   * `if (this.get('state.a.b')) { ... }` will work in state 'a.b.c' and 'a.b.d',
-   * epsecially for templates.
-   * 
-   * @property {Object} state
-   */
-  state: computed('currentState', function() {
-    return this.get('currentState').split('.').reduceRight((acc, s) => {
-      return { [s]: acc };
-    }, {});
-  }),
 
   send(actionName, ...args) {
 
@@ -73,7 +102,6 @@ export default Ember.Mixin.create({
   },
 
   transitionTo(state) {
-    // todo check state?
     this.set('currentState', state);
   },
 });
