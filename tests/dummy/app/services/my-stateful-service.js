@@ -43,7 +43,7 @@ export default Ember.Service.extend(Stateful, {
        lostConnection() {
         console.log('lost connection');
         Ember.run.cancel(this.get('syncTimer'));
-        this.transitionTo('offline.connecting');
+        this.transitionTo('offline');
         this.send('connect');
       },
     }

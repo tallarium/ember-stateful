@@ -19,5 +19,8 @@ export default Ember.Component.extend({
     sync() {
       this.get('myStatefulService').send('sync');
     },
+    looseConnection() {
+      this.get('myStatefulService').send('lostConnection');
+    },
   },
 });
