@@ -57,7 +57,7 @@ export default Ember.Service.extend(Stateful, {
       },
       disconnect() {
         console.log('disconnecting');
-        this.transitionTo('offline');
+        this.transitionTo('online.disconnecting');
       },
       sync() {
         console.log('starting sync');
@@ -90,11 +90,18 @@ export default Ember.Service.extend(Stateful, {
       disconnecting: {
         _enter() {
           console.log('entering state online.disconnecting');
+          Ember.run.later(this, function() {
+            this.transitionTo('offline');
+          }, 500);
         },
         _exit() {
           console.log('exiting state online.disconnecting');
         },
+        lostConnection() {
+          console.log('lost connection');
+          this.transitionTo('offline');
+        },
       },
-    }
+    },
   },
 });

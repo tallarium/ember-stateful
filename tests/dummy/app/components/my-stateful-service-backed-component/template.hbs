@@ -6,6 +6,6 @@ Current Service State: {{myStatefulService.currentState}}
 
 <button disabled={{not state.offline.disconnected}} onclick={{action "connect"}}>connect</button>
 <button disabled={{not state.offline.connecting}} onclick={{action "cancelConnect"}}>cancel</button>
-<button disabled={{not state.online}} onclick={{action "disconnect"}}>disconnect</button>
+<button disabled={{or state.offline state.online.disconnecting}} onclick={{action "disconnect"}}>disconnect</button>
 <button disabled={{or state.offline state.online.syncing}} onclick={{action "sync"}}>sync</button>
 <button disabled={{not state.online}} onclick={{action "looseConnection"}}>loose connection</button>
