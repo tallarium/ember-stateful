@@ -27,19 +27,22 @@ export default Ember.Service.extend(Stateful, {
           console.log('exiting state offline.disconnected');
         },
         connect() {
+          console.log('connect')
           this.transitionTo('offline.connecting');
-          this.set('connectTimer', Ember.run.later(this, 'transitionTo', 'online.connected', 1000));
         },
       },
       connecting: {
         _enter() {
           console.log('entering state offline.connecting');
+          console.log('starting connection');
+          this.set('connectTimer', Ember.run.later(this, 'transitionTo', 'online.connected', 1000));
         },
         _exit() {
           console.log('exiting state offline.connecting');
+          Ember.run.cancel(this.get('connectTimer'));
         },
         cancelConnect() {
-          Ember.run.cancel(this.get('connectTimer'));
+          console.log('cancelling connection')
           this.transitionTo('offline.disconnected');
         },
       },
@@ -50,25 +53,19 @@ export default Ember.Service.extend(Stateful, {
       },
       _exit() {
         console.log('exiting state online');
+        Ember.run.cancel(this.get('syncTimer'));
       },
       disconnect() {
         console.log('disconnecting');
-        Ember.run.cancel(this.get('syncTimer'));
         this.transitionTo('offline');
       },
       sync() {
         console.log('starting sync');
         this.transitionTo('online.syncing');
-        this.set('syncTimer', Ember.run.later(this, function() {
-          console.log('finished sync');
-          this.transitionTo('online.connected');
-        }, 1000));
       },
       lostConnection() {
         console.log('lost connection');
-        Ember.run.cancel(this.get('syncTimer'));
-        this.transitionTo('offline');
-        this.send('connect');
+        this.transitionTo('offline.connecting');
       },
       connected: {
         _enter() {
@@ -81,6 +78,10 @@ export default Ember.Service.extend(Stateful, {
       syncing: {
         _enter() {
           console.log('entering state online.syncing');
+          this.set('syncTimer', Ember.run.later(this, function() {
+            console.log('finished sync');
+            this.transitionTo('online.connected');
+          }, 1000));
         },
         _exit() {
           console.log('exiting state online.syncing');
