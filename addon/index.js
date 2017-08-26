@@ -17,11 +17,15 @@ export default Ember.Mixin.create({
       return this._defaultStateMapping[''];
     },
     set(key, value) {
-      const theState = this._defaultStateMapping[value];
-      if (Ember.isNone(theState)) {
+      let targetState = value;
+      do {
+        value = targetState;
+        targetState = this._defaultStateMapping[value];
+      } while (!Ember.isNone(targetState) && targetState !== value)
+      if (Ember.isNone(targetState)) {
         throw new Error(`Invalid state transition attempted. Unknown state: ${value}`);
       }
-      return theState;
+      return targetState;
     },
   }),
 

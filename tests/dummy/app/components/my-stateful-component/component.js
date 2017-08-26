@@ -22,7 +22,7 @@ export default Ember.Component.extend(Stateful, {
     },
 
     turnOn() {
-      this.transitionTo('on.idle');
+      this.transitionTo('on');
     },
 
     on: {
