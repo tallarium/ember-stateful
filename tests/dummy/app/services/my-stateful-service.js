@@ -1,6 +1,36 @@
 import Ember from 'ember';
 import Stateful from 'ember-stateful';
 
+/**
+
+State Transition Diagram. Dotted lines indicate an asynchronous transition
+
+    +-----------------------------------------------+
+    | offline                                       |
+    |                                               |
+    | +--------------+    connect    +------------+ |
+    | |              +--------------->            | |
+    +-> disconnected |               | connecting | |
+    | |              <---------------+            | |
+    | +--------------+ cancelConnect +----^-+-----+ |
+    |                                     | :       |
+    +---^--^------------------------------|-:-------+
+        :  |                              | :
+        :  |lostConnection  lostConnection| :_enter
+        :  |                              | :
++-------:--|--+------------+--------------+-v-----------+
+|       :  |  |            |                     online |
+| _enter:  |  |disconnect  |sync                        |
+|       :  |  |            |                            |
+| +-----+--+--v---+   +----v----+        +-----------+  |
+| |               |   |         |        |           |  |
+| | disconnecting |   | syncing +........> connected <--+
+| |               |   |         | _enter |           |  |
+| +---------------+   +---------+        +-----------+  |
+|                                                       |
++-------------------------------------------------------+
+ */
+
 export default Ember.Service.extend(Stateful, {
 
   states: [
@@ -35,7 +65,7 @@ export default Ember.Service.extend(Stateful, {
         _enter() {
           console.log('entering state offline.connecting');
           console.log('starting connection');
-          this.set('connectTimer', Ember.run.later(this, 'transitionTo', 'online.connected', 1000));
+          this.set('connectTimer', Ember.run.later(this, 'transitionTo', 'online', 1000));
         },
         _exit() {
           console.log('exiting state offline.connecting');
