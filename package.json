@@ -1,17 +1,23 @@
 {
   "name": "ember-stateful",
   "version": "0.0.0",
-  "description": "The default blueprint for ember-cli addons.",
+  "description": "A simple mixin to provide finite state machine semantics to Ember Components and Services.",
   "keywords": [
-    "ember-addon"
+    "ember-addon",
+    "ember-stateful",
+    "stateful",
+    "state",
+    "state machine",
+    "finite state machine",
+    "FSM"
   ],
   "license": "MIT",
-  "author": "",
+  "author": "Dmitri Akatov",
   "directories": {
     "doc": "doc",
     "test": "tests"
   },
-  "repository": "",
+  "repository": "akatov/ember-stateful",
   "scripts": {
     "build": "ember build",
     "start": "ember server",
