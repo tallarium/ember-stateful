@@ -12,7 +12,7 @@ ember install ember-stateful
 
 ```js
 // my-component.js
-import Stateful from 'ember-stateful'
+import Stateful from 'ember-stateful/mixins/stateful'
 
 export default Ember.Component.extend(Stateful, {
 
@@ -24,7 +24,7 @@ export default Ember.Component.extend(Stateful, {
     'on.active'
     'off',
   ],
-  
+
   didInsertElement(...args) {
     this._super(...args);
     Ember.run.later(this, function() {

@@ -1,5 +1,5 @@
 import Ember from 'ember';
-import Stateful from 'ember-stateful';
+import Stateful from 'ember-stateful/mixins/stateful';
 
 const { Logger: { log } } = Ember;
 
