@@ -6,7 +6,10 @@ module('Unit | Mixin | stateful');
 
 // Replace this with your real tests.
 test('it works', function(assert) {
-  let StatefulObject = Ember.Object.extend(StatefulMixin);
+  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+    states: [],
+    actions: {}
+  });
   let subject = StatefulObject.create();
   assert.ok(subject);
 });
