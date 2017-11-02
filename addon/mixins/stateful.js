@@ -1,5 +1,5 @@
 import Ember from 'ember';
-import { task } from 'ember-concurrency';
+import { task, taskGroup } from 'ember-concurrency';
 
 const { computed } = Ember;
 
@@ -10,23 +10,40 @@ export const ERRORS = {
   NO_RUNNING_STATE: () => 'There is no state running!',
 }
 
-function isStateHash(obj) {
-  return typeof(obj) !== 'function';
+function isReservedProperty(name) {
+  return ['_try', '_catch', '_finally', '_default'].includes(name)
+}
+
+function isStateHash(name, obj) {
+  return !isReservedProperty(name) && typeof(obj) !== 'function';
 }
 
 function isAction(name, obj) {
-  return !['_try', '_catch', '_finally', '_default'].includes(name) && typeof(obj) === 'function';
+  return !isReservedProperty(name) && typeof(obj) === 'function';
 }
 
 function getSuperStateName(stateName) {
+  if (stateName === '_root') {
+    return null;
+  }
+  if (!stateName.includes('.')) {
+    return '_root';
+  }
   return stateName.split('.').slice(0, -1).join('.');
 }
 
-function getStateTaskPropertyName(stateName) {
+function getStateTaskName(stateName) {
   if (stateName === '_root') {
     return '_state_root';
   }
   return `_state_${stateName.split('.').join('_')}`;
+}
+
+function getStateTaskGroupPropertyName(stateName) {
+  if (stateName === '_root') {
+    return '_taskgroup_root';
+  }
+  return `_taskgroup_${stateName.split('.').join('_')}`;
 }
 
 function isStateTaskName(name) {
@@ -34,7 +51,7 @@ function isStateTaskName(name) {
 }
 
 function findSubStates(stateHash) {
-  return Object.entries(stateHash).filter(([, val]) => isStateHash(val));
+  return Object.entries(stateHash).filter(([name, val]) => isStateHash(name, val));
 }
 
 function findDefaultSubState([stateName, stateHash]) {
@@ -56,6 +73,20 @@ function findDefaultSubState([stateName, stateHash]) {
   }
   const [defaultSubState] = defaultSubStates;
   return defaultSubState;
+}
+
+function getFullStateName(stateName, fullSuperStateName) {
+  return fullSuperStateName === '_root'
+    ? stateName
+    : [fullSuperStateName, stateName].join('.');
+}
+
+function getStateNameFromStateTaskName(stateTaskName) {
+  if (stateTaskName.endsWith('_root')){
+    return '_root';
+  }
+  const [, state] = stateTaskName.split('_state_');
+  return state.split('_').join('.');
 }
 
 /**
@@ -87,53 +118,52 @@ export default Ember.Mixin.create({
    * @property {Object} state
    */
   state: computed('currentState', function() {
-    return this.get('currentState').split('.').reduceRight((acc, s) => {
+    const ret = this.get('currentState').split('.').reduceRight((acc, s) => {
       return { [s]: acc };
     }, {});
+    return ret;
   }),
 
-  getCurrentState() {
+  getCurrentStateTaskName() {
     const stateTaskNames = this.get('stateTaskNames');
-    const runningState = stateTaskNames.find(
+    const runningStateName = stateTaskNames.find(
       stateTaskName => this.get(`${stateTaskName}.isRunning`)
     );
-    if (!runningState) {
+    if (!runningStateName) {
       throw new Error(ERRORS.NO_RUNNING_STATE());
     }
-    return runningState;
+    return runningStateName;
+  },
+
+  getCurrentStateName() {
+    return getStateNameFromStateTaskName(this.getCurrentStateTaskName());
   },
 
   _initializeState(stateHash, stateName, fullSuperStateName) {
     // initialize
-    const fullStateName = fullSuperStateName === '_root'
-      ? stateName
-      : [fullSuperStateName, stateName].join('.');
+    const fullStateName = getFullStateName(stateName, fullSuperStateName);
+
+    // create task group for potential substates of this task
+    this.set(getStateTaskGroupPropertyName(fullStateName), taskGroup().restartable());
 
     // create the state task
     let stateTask = task(function*(...args){
       yield* this._stateTaskFunction(fullStateName, ...args);
     });
 
+    // add the state task to the superstate task group
     if (fullStateName !== '_root') {
-      // add the state task to the superstate task group
-      stateTask = stateTask.group(fullSuperStateName);
-      // also add substate to siblings
-      let siblingStates = this._superStateToSubStatesMapping[fullSuperStateName];
-      if (siblingStates === undefined) {
-        siblingStates = [];
-        this._superStateToSubStatesMapping[fullSuperStateName] = siblingStates;
-      }
-      siblingStates.push(fullStateName);
+      stateTask = stateTask.group(getStateTaskGroupPropertyName(fullSuperStateName));
     }
 
     // save task
-    this.set(getStateTaskPropertyName(fullStateName), stateTask);
+    this.set(getStateTaskName(fullStateName), stateTask);
 
     // find the default substate
     const defaultSubState = findDefaultSubState([fullStateName, stateHash]);
     if (defaultSubState !== null) {
       const [defaultSubStateName, ] = defaultSubState;
-      this._defaultStateMapping[fullStateName] = [fullStateName, defaultSubStateName].join('.');
+      this._defaultStateMapping[fullStateName] = getFullStateName(defaultSubStateName, fullStateName);
     }
 
     // put state actions at the top to be able to call them from components
@@ -153,7 +183,6 @@ export default Ember.Mixin.create({
 
   _initializeStateHierarchy() {
     this._defaultStateMapping = {};
-    this._superStateToSubStatesMapping = {};
     const actions = Object.assign({}, this.actions);
     this._initializeState(actions, '_root', '_root');
     this.actions._root = actions;
@@ -167,9 +196,10 @@ export default Ember.Mixin.create({
     this.getStateTask('_root').perform(true);
     const stateTaskNames = this.get('stateTaskNames') ;
     Object.defineProperty(this, 'currentState', {
-      value: computed(...stateTaskNames.map(stateTask => `${stateTask}.isRunning`), this.getCurrentState),
+      value: computed(...stateTaskNames.map(stateTask => `${stateTask}.isRunning`), this.getCurrentStateName),
     });
-    // kick off the currentState property
+    // kick off the computed properties
+    this.get('state');
     this.get('currentState');
   },
 
@@ -198,7 +228,7 @@ export default Ember.Mixin.create({
   },
 
   getStateTask(stateName) {
-    return this.get(getStateTaskPropertyName(stateName));
+    return this.get(getStateTaskName(stateName));
   },
 
   getDefaultStateName(stateName) {
@@ -239,10 +269,10 @@ export default Ember.Mixin.create({
         throw e;
       }
     } finally {
-      // we are exiting so cancel the subtask group
-      const subStates = this._superStateToSubStatesMapping[stateName] || [];
-      for (const subState of subStates) {
-        this.getStateTask(subState).cancelAll();
+      // we are exiting so cancel the task group
+      this.get(getStateTaskGroupPropertyName(stateName)).cancelAll();
+      if (stateActions._finally) {
+        stateActions._finally();
       }
     }
   }
