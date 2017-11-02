@@ -10,6 +10,21 @@ export const ERRORS = {
   NO_RUNNING_STATE: () => 'There is no state running!',
 }
 
+function isThenable(obj) {
+  return obj && typeof(obj.then) === 'function';
+}
+
+function executeStateHook(target, hook) {
+  let ret;
+  if (hook) {
+    ret = hook.call(target);
+  }
+  if (!isThenable(ret)) {
+    ret = Ember.RSVP.resolve();
+  }
+  return ret;
+}
+
 function isReservedProperty(name) {
   return ['_try', '_catch', '_finally', '_default'].includes(name)
 }
@@ -249,9 +264,7 @@ export default Ember.Mixin.create(Ember.Evented, {
     const stateActions = this.get(`actions.${stateName}`) || {};
     try {
       this.trigger('try', stateName);
-      if (stateActions._try) {
-        stateActions._try();
-      }
+      yield executeStateHook(this, stateActions._try);
       if (shouldStartDefaultSubtask) {
         const defaultStateName = this.getDefaultStateName(stateName);
         if (defaultStateName) {
@@ -273,9 +286,7 @@ export default Ember.Mixin.create(Ember.Evented, {
       // we are exiting so cancel the task group
       this.get(getStateTaskGroupPropertyName(stateName)).cancelAll();
       this.trigger('finally', stateName);
-      if (stateActions._finally) {
-        stateActions._finally();
-      }
+      yield executeStateHook(this, stateActions._finally);
     }
   }
 });

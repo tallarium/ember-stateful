@@ -122,5 +122,21 @@ test('triggers events on state enter and exit', function(assert) {
     'A.B.finally',
     'X.try',
   ]);
+});
 
+test('waits for hook promises', function(assert) {
+  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+    states: [],
+    actions: {
+      A: {
+        _default: true,
+        _try: () => Ember.RSVP.defer().promise,
+        B: {},
+      },
+      X: {},
+    }
+  });
+  let subject = StatefulObject.create();
+  assert.ok(subject.get('state.A'));
+  assert.notOk(subject.get('state.A.B'));
 });
