@@ -92,7 +92,7 @@ function getStateNameFromStateTaskName(stateTaskName) {
 /**
  * @see https://github.com/emberjs/ember.js/blob/v2.14.1/packages/ember-views/lib/mixins/action_support.js
  */
-export default Ember.Mixin.create({
+export default Ember.Mixin.create(Ember.Evented, {
 
   stateTaskNames: computed(function () {
     return Object.keys(this)
@@ -248,6 +248,7 @@ export default Ember.Mixin.create({
 
     const stateActions = this.get(`actions.${stateName}`) || {};
     try {
+      this.trigger('try', stateName);
       if (stateActions._try) {
         stateActions._try();
       }
@@ -271,6 +272,7 @@ export default Ember.Mixin.create({
     } finally {
       // we are exiting so cancel the task group
       this.get(getStateTaskGroupPropertyName(stateName)).cancelAll();
+      this.trigger('finally', stateName);
       if (stateActions._finally) {
         stateActions._finally();
       }

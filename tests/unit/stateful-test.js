@@ -87,7 +87,9 @@ test('calls hooks in the proper order', function(assert) {
     }
   });
   let subject = StatefulObject.create();
+
   subject.transitionTo('X');
+
   assert.deepEqual(arr, [
     'A.try',
     'A.B.try',
@@ -95,4 +97,30 @@ test('calls hooks in the proper order', function(assert) {
     'A.B.finally',
     'X.try',
   ]);
+});
+
+test('triggers events on state enter and exit', function(assert) {
+  const arr = [];
+  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+    states: [],
+    actions: {
+      A: {
+        _default: true,
+        B: {},
+      },
+      X: {},
+    }
+  });
+  let subject = StatefulObject.create();
+  subject.on('try', (stateName) => arr.push(`${stateName}.try`));
+  subject.on('finally', (stateName) => arr.push(`${stateName}.finally`));
+
+  subject.transitionTo('X');
+
+  assert.deepEqual(arr, [
+    'A.finally',
+    'A.B.finally',
+    'X.try',
+  ]);
+
 });
