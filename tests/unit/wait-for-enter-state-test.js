@@ -40,7 +40,7 @@ test('does not resolve if already in state', async function(assert) {
   const timeoutFunc = async (ms) => { await timeout(ms); return 'timeout' };
   const result = await Ember.RSVP.race([
     waitForEnterState(obj, 'B'),
-    timeoutFunc(1000),
+    timeoutFunc(200),
   ])
   assert.equal(result, 'timeout');
 });
