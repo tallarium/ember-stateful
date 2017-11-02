@@ -39,6 +39,9 @@ function findSubStates(stateHash) {
 
 function findDefaultSubState([stateName, stateHash]) {
   const subStates = findSubStates(stateHash);
+  if (subStates.length === 0) {
+    return null;
+  }
   if (subStates.length === 1) {
     const [subState] = subStates;
     return subState;
@@ -60,7 +63,7 @@ function findDefaultSubState([stateName, stateHash]) {
  */
 export default Ember.Mixin.create({
 
-  stateTasks: computed(function () {
+  stateTaskNames: computed(function () {
     return Object.keys(this)
       .filter(isStateTaskName)
       .map(key => ({
@@ -74,9 +77,6 @@ export default Ember.Mixin.create({
       .map(x => x.join('_'))
       .map(x => (x === '_state' ? '_state_root' : x)); // bring back proper name for state_root
   }),
-
-  //TODO
-  currentState: computed(),
 
   /**
    * If the current State is 'a.b.c', this property is `{ a: { b: { c: {}}}}`
@@ -93,8 +93,10 @@ export default Ember.Mixin.create({
   }),
 
   getCurrentState() {
-    const states = this.get('states');
-    const runningState = states.find(state => this.get(`${state}.isRunning`));
+    const stateTaskNames = this.get('stateTaskNames');
+    const runningState = stateTaskNames.find(
+      stateTaskName => this.get(`${stateTaskName}.isRunning`)
+    );
     if (!runningState) {
       throw new Error(ERRORS.NO_RUNNING_STATE());
     }
@@ -128,8 +130,11 @@ export default Ember.Mixin.create({
     this.set(getStateTaskPropertyName(fullStateName), stateTask);
 
     // find the default substate
-    const [defaultSubStateName] = findDefaultSubState([fullStateName, stateHash]);
-    this._defaultStateMapping[fullStateName] = [fullStateName, defaultSubStateName].join('.');
+    const defaultSubState = findDefaultSubState([fullStateName, stateHash]);
+    if (defaultSubState !== null) {
+      const [defaultSubStateName, ] = defaultSubState;
+      this._defaultStateMapping[fullStateName] = [fullStateName, defaultSubStateName].join('.');
+    }
 
     // put state actions at the top to be able to call them from components
     const actions = Object.entries(stateHash).filter(([key, val]) => isAction(key, val));
@@ -160,9 +165,9 @@ export default Ember.Mixin.create({
     this._super(...args);
     this._initializeStateHierarchy();
     this.getStateTask('_root').perform(true);
-    const stateTasks = this.get('stateTasks') ;
+    const stateTaskNames = this.get('stateTaskNames') ;
     Object.defineProperty(this, 'currentState', {
-      value: computed(...stateTasks.map(stateTask => `${stateTask}.isRunning`), this.getCurrentState),
+      value: computed(...stateTaskNames.map(stateTask => `${stateTask}.isRunning`), this.getCurrentState),
     });
     // kick off the currentState property
     this.get('currentState');
