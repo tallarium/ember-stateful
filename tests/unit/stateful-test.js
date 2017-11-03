@@ -1,5 +1,6 @@
 import Ember from 'ember';
-import StatefulMixin, { ERRORS } from 'ember-stateful/mixins/stateful';
+import StatefulMixin from 'ember-stateful/mixins/stateful';
+import ERRORS from 'ember-stateful/errors';
 import { module, test } from 'qunit';
 
 module('Unit | Mixin | stateful');
@@ -117,6 +118,17 @@ test('triggers events on state enter and exit', function(assert) {
   ]);
 });
 
+test('throws error when transitioning to nonexistent state', function(assert) {
+  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+    actions: {
+      A: {
+        B: {},
+      },
+    }
+  });
+  let subject = StatefulObject.create();
+  assert.throws(() => subject.transitionTo('X'), ERRORS.NO_SUCH_STATE('X'));
+});
 test('waits for hook promises', function(assert) {
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
     actions: {

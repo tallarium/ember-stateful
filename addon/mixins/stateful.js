@@ -1,14 +1,8 @@
 import Ember from 'ember';
 import { task, taskGroup } from 'ember-concurrency';
+import ERRORS from 'ember-stateful/errors';
 
 const { computed } = Ember;
-
-export const ERRORS = {
-  DEFAULT_SUBSTATE_NOT_DEFINED: (superState) => `Assertion error: the default substate for ${superState} is not defined`,
-  MULTIPLE_DEFAULT_SUBSTATES: (superState, subStates) => `Assertion error: there are multiple default substates defined for ${superState}: ${JSON.stringify(subStates)}`,
-  NO_ROOT_ACTION: (actionName, actionObject) => `A root action named '${actionName}' was not found in ${actionObject}`,
-  NO_RUNNING_STATE: () => 'There is no state running!',
-}
 
 function isThenable(obj) {
   return obj && typeof(obj.then) === 'function';
@@ -122,6 +116,11 @@ export default Ember.Mixin.create(Ember.Evented, {
       .sort((x, y) => x.length < y.length)
       .map(x => x.join('_'))
       .map(x => (x === '_state' ? '_state_root' : x)); // bring back proper name for state_root
+  }),
+
+  stateNames: computed('stateTaskNames', function() {
+    const stateTaskNames = this.get('stateTaskNames');
+    return stateTaskNames.map(getStateNameFromStateTaskName);
   }),
 
   /**
@@ -239,6 +238,9 @@ export default Ember.Mixin.create(Ember.Evented, {
   },
 
   transitionTo(stateName) {
+    if (!this.checkIfStateExists(stateName)) {
+      throw new Error(ERRORS.NO_SUCH_STATE(stateName));
+    }
     this.getStateTask(stateName).perform(true);
   },
 
@@ -248,6 +250,11 @@ export default Ember.Mixin.create(Ember.Evented, {
 
   getDefaultStateName(stateName) {
     return this._defaultStateMapping[stateName];
+  },
+
+  checkIfStateExists(stateName) {
+    const stateNames = this.get('stateNames');
+    return stateNames.includes(stateName);
   },
 
   *_stateTaskFunction(stateName, shouldStartDefaultSubtask = true) {
