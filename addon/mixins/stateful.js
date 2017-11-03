@@ -4,6 +4,8 @@ import ERRORS from 'ember-stateful/errors';
 
 const { computed } = Ember;
 
+const WAIT_HERE_FOREVER = Ember.RSVP.defer().promise;
+
 function isThenable(obj) {
   return obj && typeof(obj.then) === 'function';
 }
@@ -94,7 +96,7 @@ function getStateNameFromStateTaskName(stateTaskName) {
   if (stateTaskName.endsWith('_root')){
     return '_root';
   }
-  const [, state] = stateTaskName.split('_state_');
+  const [, state] = stateTaskName.match(/^_state_(\w+)/);
   return state.split('_').join('.');
 }
 
@@ -175,7 +177,7 @@ function* stateTaskFunction(target, stateName, shouldStartDefaultSubtask = true)
       }
     }
     // never ending yield to keep the task running
-    yield Ember.RSVP.defer().promise;
+    yield WAIT_HERE_FOREVER;
   } catch(e) {
     // TODO: bubble the exception up
     if (stateActions._catch) {

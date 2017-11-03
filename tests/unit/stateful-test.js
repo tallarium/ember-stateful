@@ -6,7 +6,7 @@ import { module, test } from 'qunit';
 module('Unit | Mixin | stateful');
 
 // Replace this with your real tests.
-test('it works', function(assert) {
+test('it initializes correctly with empty actions hash', function(assert) {
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
     actions: {}
   });
@@ -37,7 +37,7 @@ test('transitions to default state specified explicitly', function(assert) {
   assert.ok(subject.get('state.B'))
 });
 
-test('throws if default substate not specified', function(assert) {
+test('throws if default substate neither obvious nor specified explicitly', function(assert) {
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
     actions: {
       A: {},
