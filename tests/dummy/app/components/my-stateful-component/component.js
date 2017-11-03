@@ -5,25 +5,6 @@ const { Logger: { log } } = Ember;
 
 export default Ember.Component.extend(Stateful, {
 
-  states: [
-    'off.dead',
-    'on.active.dancing',
-    'on.idle',
-    'on.active.walking',
-  ],
-
-  off: {
-
-    dead: {
-      _enter() {
-        log('entering state off.dead');
-      },
-      _exit() {
-        log('exiting state off.dead');
-      },
-    }
-  },
-
   actions: {
 
     doStuff(...args) {
@@ -40,10 +21,10 @@ export default Ember.Component.extend(Stateful, {
     },
 
     on: {
-      _enter() {
+      _try() {
         log('entering state on');
       },
-      _exit() {
+      _finally() {
         log('exiting state on');
       },
       turnOn() {
@@ -51,10 +32,10 @@ export default Ember.Component.extend(Stateful, {
       },
 
       idle: {
-        _enter() {
+        _try() {
           log('entering state on.idle');
         },
-        _exit() {
+        _finally() {
           log('exiting state on.idle');
         },
         doStuff() {
@@ -65,10 +46,11 @@ export default Ember.Component.extend(Stateful, {
       },
 
       active: {
-        _enter() {
+        _default: true,
+        _try() {
           log('entering state on.active');
         },
-        _exit() {
+        _finally() {
           log('exiting state on.active');
         },
         doStuff() {
@@ -78,10 +60,11 @@ export default Ember.Component.extend(Stateful, {
     },
 
     off: {
-      _enter() {
+      _default: true,
+      _try() {
         log('entering state off');
       },
-      _exit() {
+      _finally() {
         log('exiting state off');
       },
       turnOn() {
@@ -95,10 +78,10 @@ export default Ember.Component.extend(Stateful, {
       },
 
       dead: {
-        _enter() {
+        _try() {
           log('entering state off.dead');
         },
-        _exit() {
+        _finally() {
           log('exiting state off.dead');
         },
       },
