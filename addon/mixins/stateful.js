@@ -10,10 +10,10 @@ function isThenable(obj) {
   return obj && typeof(obj.then) === 'function';
 }
 
-function executeStateHook(target, hook) {
+function executeStateHook(target, hook, ...args) {
   let ret;
   if (hook) {
-    ret = hook.call(target);
+    ret = hook.call(target, ...args);
   }
   if (!isThenable(ret)) {
     ret = Ember.RSVP.resolve();
@@ -181,7 +181,7 @@ function* stateTaskFunction(target, stateName, shouldStartDefaultSubtask = true)
   } catch(e) {
     // TODO: bubble the exception up
     if (stateActions._catch) {
-      stateActions._catch(e);
+      yield executeStateHook(target, stateActions._catch, e);
     } else {
       throw e;
     }
