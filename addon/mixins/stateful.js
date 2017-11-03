@@ -270,7 +270,7 @@ export default Ember.Mixin.create(Ember.Evented, {
 
     const stateActions = this.get(`actions.${stateName}`) || {};
     try {
-      this.trigger('try', stateName);
+      this.trigger(`try_${stateName}`);
       yield executeStateHook(this, stateActions._try);
       if (shouldStartDefaultSubtask) {
         const defaultStateName = this.getDefaultStateName(stateName);
@@ -292,7 +292,7 @@ export default Ember.Mixin.create(Ember.Evented, {
     } finally {
       // we are exiting so cancel the task group
       this.get(getStateTaskGroupPropertyName(stateName)).cancelAll();
-      this.trigger('finally', stateName);
+      this.trigger(`finally_${stateName}`);
       yield executeStateHook(this, stateActions._finally);
     }
   }

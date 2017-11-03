@@ -106,15 +106,17 @@ test('triggers events on state enter and exit', function(assert) {
     }
   });
   let subject = StatefulObject.create();
-  subject.on('try', (stateName) => arr.push(`${stateName}.try`));
-  subject.on('finally', (stateName) => arr.push(`${stateName}.finally`));
-
+  for (const stateName of ['A', 'A.B', 'X']) {
+    for (const eventName of ['try', 'finally'].map((hook => `${hook}_${stateName}`))) {
+      subject.on(eventName, () => arr.push(eventName));
+    }
+  }
   subject.transitionTo('X');
 
   assert.deepEqual(arr, [
-    'A.finally',
-    'A.B.finally',
-    'X.try',
+    'finally_A',
+    'finally_A.B',
+    'try_X',
   ]);
 });
 

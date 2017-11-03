@@ -3,7 +3,9 @@ import StatefulMixin, { waitForEnterState, ERRORS } from 'ember-stateful';
 import { timeout } from 'ember-concurrency';
 import { module, test } from 'qunit';
 
-module('Unit | waitForEnterState');
+const timeoutFunc = async (ms) => { await timeout(ms); return 'timeout' };
+
+module('Unit | Util | waitForEnterState');
 
 // Replace this with your real tests.
 test('detects state enter', async function(assert) {
@@ -21,8 +23,11 @@ test('detects state enter', async function(assert) {
   const waiting = waitForEnterState(obj, 'X');
   obj.transitionTo('X');
   // should resolve
-  await waiting;
-  assert.ok(true)
+  const result = await Ember.RSVP.race([
+    waiting,
+    timeoutFunc(200),
+  ]);
+  assert.notEqual(result, 'timeout');
 });
 
 test('does not resolve if already in state', async function(assert) {
@@ -37,7 +42,6 @@ test('does not resolve if already in state', async function(assert) {
     }
   });
   let obj = StatefulObject.create();
-  const timeoutFunc = async (ms) => { await timeout(ms); return 'timeout' };
   const result = await Ember.RSVP.race([
     waitForEnterState(obj, 'A.B'),
     timeoutFunc(200),

@@ -7,11 +7,7 @@ export function waitForEnterState(statefulObject, stateName) {
     throw new Error(ERRORS.NO_SUCH_STATE(stateName));
   }
   return new Ember.RSVP.Promise((resolve) => {
-    statefulObject.on('try', (eventStateName) => {
-      if (eventStateName === stateName) {
-        resolve();
-      }
-    })
+    statefulObject.one(`try_${stateName}`, resolve);
   });
 }
 
