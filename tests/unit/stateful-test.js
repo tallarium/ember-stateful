@@ -131,6 +131,7 @@ test('throws error when transitioning to nonexistent state', function(assert) {
   let subject = StatefulObject.create();
   assert.throws(() => subject.transitionTo('X'), ERRORS.NO_SUCH_STATE('X'));
 });
+
 test('waits for hook promises', function(assert) {
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
     actions: {
@@ -145,4 +146,76 @@ test('waits for hook promises', function(assert) {
   let subject = StatefulObject.create();
   assert.ok(subject.get('state.A'));
   assert.notOk(subject.get('state.A.B'));
+});
+
+test('does not allow actions from other states', function (assert) {
+  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+    actions: {
+      A: {
+        _default: true,
+        B: {},
+      },
+      X: {
+        someAction() {},
+      },
+    }
+  });
+  let subject = StatefulObject.create();
+  assert.throws(() => subject.send('someAction'), ERRORS.NO_ROOT_ACTION('someAction', subject));
+});
+
+test('bubbles actions up if they return true', function (assert) {
+  const arr = [];
+  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+    actions: {
+      someAction(){
+        arr.push('root');
+      },
+      A: {
+        someAction() {
+          arr.push('A');
+          return true;
+        },
+        B: {
+          someAction() {
+            arr.push('B');
+            return true;
+          },
+        },
+      },
+    },
+  });
+  let subject = StatefulObject.create();
+  subject.send('someAction');
+  assert.deepEqual(arr, [
+    'B',
+    'A',
+    'root',
+  ]);
+});
+
+test('does not bubble actions if they don\'t return true', function (assert) {
+  const arr = [];
+  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+    actions: {
+      someAction(){
+        arr.push('root');
+      },
+      A: {
+        someAction() {
+          arr.push('A');
+        },
+        B: {
+          someAction() {
+            arr.push('B');
+          },
+        },
+      },
+    },
+  });
+  let subject = StatefulObject.create();
+  subject.send('someAction');
+  assert.deepEqual(arr, [
+    'B',
+  ]);
 });
