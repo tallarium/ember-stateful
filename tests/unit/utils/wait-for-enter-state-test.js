@@ -1,5 +1,7 @@
 import Ember from 'ember';
-import StatefulMixin, { waitForEnterState, ERRORS } from 'ember-stateful';
+import StatefulMixin from 'ember-stateful/mixins/stateful';
+import waitForEnterState from 'ember-stateful/utils/wait-for-enter-state';
+import ERRORS from 'ember-stateful/errors';
 import { timeout } from 'ember-concurrency';
 import { module, test } from 'qunit';
 
