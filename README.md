@@ -16,15 +16,6 @@ import Stateful from 'ember-stateful'
 
 export default Ember.Component.extend(Stateful, {
 
-  // you need to define
-  states: [
-    'on', // defining this substate is optional.
-          // Any transition to `on` will transition to `on.idle`
-    'on.idle', // this will be the default starting state
-    'on.active'
-    'off',
-  ],
-
   didInsertElement(...args) {
     this._super(...args);
     Ember.run.later(this, function() {
@@ -48,6 +39,7 @@ export default Ember.Component.extend(Stateful, {
         return true; // makes the action bubble to the parent state
       },
       idle: {
+        _default: true,
         _try() { alert('i am entering the on.idle state'); },
         _finally() { alert('i am exiting the on.idle state'); },
         toggle() {
@@ -83,19 +75,6 @@ Current state is {{currentState}}
 
 For a more sophisticated usage example check out the
 component backed by a stateful service in the dummy app.
-
-## Asynchronicity
-
-All state transitions and action invocations (`this.send`) are synchronous.
-You need to manage asynchronocity yourself.
-A good recipe is to have a state corresponding to an asynchronous operation
-which initiates the operation in the `_try` hook and transitions to another
-state upon resolution of the operation.
-Dually, the `_finally` hook is a good place to cancel pending asynchronous operations,
-e.g. by cancelling any timers created by `Ember.run.later`, by setting a boolean
-guard variable that should be checked after an asynchronous action completes before
-initiating a transition to another state, or, even better, by cancelling an
-[ember-concurrency](https://github.com/machty/ember-concurrency) task.
 
 ## Why
 
