@@ -10,7 +10,6 @@ const timeoutFunc = async (ms) => { await timeout(ms); return 'timeout' };
 
 test('resolves immediately if already in state', async function(assert) {
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
-    states: [],
     actions: {
       A: {
         B: {},

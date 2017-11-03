@@ -12,7 +12,6 @@ module('Unit | Util | waitForEnterState');
 // Replace this with your real tests.
 test('detects state enter', async function(assert) {
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
-    states: [],
     actions: {
       A: {
         _default: true,
@@ -34,7 +33,6 @@ test('detects state enter', async function(assert) {
 
 test('does not resolve if already in state', async function(assert) {
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
-    states: [],
     actions: {
       A: {
         _default: true,
@@ -54,7 +52,6 @@ test('does not resolve if already in state', async function(assert) {
 
 test('throws if state does not exist', async function(assert) {
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
-    states: [],
     actions: {
       A: {
         B: {},
