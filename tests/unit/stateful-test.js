@@ -7,7 +7,6 @@ module('Unit | Mixin | stateful');
 // Replace this with your real tests.
 test('it works', function(assert) {
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
-    states: [],
     actions: {}
   });
   let subject = StatefulObject.create();
@@ -16,7 +15,6 @@ test('it works', function(assert) {
 
 test('transitions to default state', function(assert) {
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
-    states: [],
     actions: {
       A: {}
     }
@@ -27,7 +25,6 @@ test('transitions to default state', function(assert) {
 
 test('transitions to default state specified explicitly', function(assert) {
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
-    states: [],
     actions: {
       A: {},
       B: {
@@ -41,7 +38,6 @@ test('transitions to default state specified explicitly', function(assert) {
 
 test('throws if default substate not specified', function(assert) {
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
-    states: [],
     actions: {
       A: {},
       B: {},
@@ -52,7 +48,6 @@ test('throws if default substate not specified', function(assert) {
 
 test('transitions to a different state', function(assert) {
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
-    states: [],
     actions: {
       A: {
         _default: true,
@@ -70,7 +65,6 @@ test('calls hooks in the proper order', function(assert) {
   const arr = [];
   const pushToArr = (arg) => () => arr.push(arg);
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
-    states: [],
     actions: {
       A: {
         _default: true,
@@ -102,7 +96,6 @@ test('calls hooks in the proper order', function(assert) {
 test('triggers events on state enter and exit', function(assert) {
   const arr = [];
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
-    states: [],
     actions: {
       A: {
         _default: true,
@@ -126,7 +119,6 @@ test('triggers events on state enter and exit', function(assert) {
 
 test('waits for hook promises', function(assert) {
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
-    states: [],
     actions: {
       A: {
         _default: true,

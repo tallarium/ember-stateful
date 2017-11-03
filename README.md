@@ -12,7 +12,7 @@ ember install ember-stateful
 
 ```js
 // my-component.js
-import Stateful from 'ember-stateful/mixins/stateful'
+import Stateful from 'ember-stateful'
 
 export default Ember.Component.extend(Stateful, {
 
