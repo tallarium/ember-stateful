@@ -98,31 +98,100 @@ function getStateNameFromStateTaskName(stateTaskName) {
   return state.split('_').join('.');
 }
 
+function initializeState(target, stateHash, stateName, fullSuperStateName) {
+  // initialize
+  const fullStateName = getFullStateName(stateName, fullSuperStateName);
+
+  // create task group for potential substates of this task
+  target.set(getStateTaskGroupPropertyName(fullStateName), taskGroup().restartable());
+
+  // create the state task
+  let stateTask = task(function*(...args){
+    yield* stateTaskFunction(target, fullStateName, ...args);
+  });
+
+  // add the state task to the superstate task group
+  if (fullStateName !== '_root') {
+    stateTask = stateTask.group(getStateTaskGroupPropertyName(fullSuperStateName));
+  }
+
+  // save task
+  target.set(getStateTaskName(fullStateName), stateTask);
+
+  // find the default substate
+  const defaultSubState = findDefaultSubState([fullStateName, stateHash]);
+  if (defaultSubState !== null) {
+    const [defaultSubStateName, ] = defaultSubState;
+    target._defaultStateMapping[fullStateName] = getFullStateName(defaultSubStateName, fullStateName);
+  }
+
+  // put state actions at the top to be able to call them from components
+  const actions = Object.entries(stateHash).filter(([key, val]) => isAction(key, val));
+  for (const [name, ] of actions) {
+    if (Ember.isNone(target.actions[name])) {
+      target.actions[name] = function(...args) {
+        this.send(name, ...args);
+      }
+    }
+  }
+  const subStates = findSubStates(stateHash);
+  for (const [name, hash] of subStates) {
+    initializeState(target, hash, name, fullStateName);
+  }
+}
+
 /**
  * @see https://github.com/emberjs/ember.js/blob/v2.14.1/packages/ember-views/lib/mixins/action_support.js
  */
+
+function initializeStateHierarchy(target) {
+  target._defaultStateMapping = {};
+  const actions = Object.assign({}, target.actions);
+  initializeState(target, actions, '_root', '_root');
+  target.actions._root = actions;
+}
+
+function* stateTaskFunction(target, stateName, shouldStartDefaultSubtask = true) {
+  if (stateName !== '_root') {
+    const superStateName = getSuperStateName(stateName);
+    const superState = target._getStateTask(superStateName);
+    if (!superState.get('isRunning')) {
+      // during transitions into a deeply nested structure the superstates will not
+      // be running so kick them off first
+      superState.perform(false);
+    }
+  }
+
+  const stateActions = target.get(`actions.${stateName}`) || {};
+  try {
+    target.trigger(`try_${stateName}`);
+    yield executeStateHook(target, stateActions._try);
+    if (shouldStartDefaultSubtask) {
+      const defaultStateName = target._getDefaultStateName(stateName);
+      if (defaultStateName) {
+        const defaultStateTask = target._getStateTask(defaultStateName);
+        // we're cascading down until we hit a leaf state
+        defaultStateTask.perform(true);
+      }
+    }
+    // never ending yield to keep the task running
+    yield Ember.RSVP.defer().promise;
+  } catch(e) {
+    // TODO: bubble the exception up
+    if (stateActions._catch) {
+      stateActions._catch(e);
+    } else {
+      throw e;
+    }
+  } finally {
+    // we are exiting so cancel the task group
+    target.get(getStateTaskGroupPropertyName(stateName)).cancelAll();
+    target.trigger(`finally_${stateName}`);
+    yield executeStateHook(target, stateActions._finally);
+  }
+}
+
 export default Ember.Mixin.create(Ember.Evented, {
-
-  stateTaskNames: computed(function () {
-    return Object.keys(this)
-      .filter(isStateTaskName)
-      .map(key => ({
-        key,
-        val: this.get(key),
-      }))
-      .map(x => x.key)
-      .map(x => (x === '_state_root' ? '_state' : x)) // state_root is actually the topmost state
-      .map(x => x.split('_'))
-      .sort((x, y) => x.length < y.length)
-      .map(x => x.join('_'))
-      .map(x => (x === '_state' ? '_state_root' : x)); // bring back proper name for state_root
-  }),
-
-  stateNames: computed('stateTaskNames', function() {
-    const stateTaskNames = this.get('stateTaskNames');
-    return stateTaskNames.map(getStateNameFromStateTaskName);
-  }),
-
   /**
    * If the current State is 'a.b.c', this property is `{ a: { b: { c: {}}}}`
    * The idea is to simplify state checks, e.g.
@@ -138,79 +207,44 @@ export default Ember.Mixin.create(Ember.Evented, {
     return ret;
   }),
 
-  getCurrentStateTaskName() {
-    const stateTaskNames = this.get('stateTaskNames');
-    const runningStateName = stateTaskNames.find(
-      stateTaskName => this.get(`${stateTaskName}.isRunning`)
-    );
-    if (!runningStateName) {
-      throw new Error(ERRORS.NO_RUNNING_STATE());
-    }
-    return runningStateName;
-  },
+  _stateTaskNames: computed(function () {
+    return Object.keys(this)
+      .filter(isStateTaskName)
+      .map(key => ({
+        key,
+        val: this.get(key),
+      }))
+      .map(x => x.key)
+      .map(x => (x === '_state_root' ? '_state' : x)) // state_root is actually the topmost state
+      .map(x => x.split('_'))
+      .sort((x, y) => x.length < y.length)
+      .map(x => x.join('_'))
+      .map(x => (x === '_state' ? '_state_root' : x)); // bring back proper name for state_root
+  }),
 
-  getCurrentStateName() {
-    return getStateNameFromStateTaskName(this.getCurrentStateTaskName());
-  },
-
-  _initializeState(stateHash, stateName, fullSuperStateName) {
-    // initialize
-    const fullStateName = getFullStateName(stateName, fullSuperStateName);
-
-    // create task group for potential substates of this task
-    this.set(getStateTaskGroupPropertyName(fullStateName), taskGroup().restartable());
-
-    // create the state task
-    let stateTask = task(function*(...args){
-      yield* this._stateTaskFunction(fullStateName, ...args);
-    });
-
-    // add the state task to the superstate task group
-    if (fullStateName !== '_root') {
-      stateTask = stateTask.group(getStateTaskGroupPropertyName(fullSuperStateName));
-    }
-
-    // save task
-    this.set(getStateTaskName(fullStateName), stateTask);
-
-    // find the default substate
-    const defaultSubState = findDefaultSubState([fullStateName, stateHash]);
-    if (defaultSubState !== null) {
-      const [defaultSubStateName, ] = defaultSubState;
-      this._defaultStateMapping[fullStateName] = getFullStateName(defaultSubStateName, fullStateName);
-    }
-
-    // put state actions at the top to be able to call them from components
-    const actions = Object.entries(stateHash).filter(([key, val]) => isAction(key, val));
-    for (const [name, ] of actions) {
-      if (Ember.isNone(this.actions[name])) {
-        this.actions[name] = function(...args) {
-          this.send(name, ...args);
-        }
-      }
-    }
-    const subStates = findSubStates(stateHash);
-    for (const [name, hash] of subStates) {
-      this._initializeState(hash, name, fullStateName);
-    }
-  },
-
-  _initializeStateHierarchy() {
-    this._defaultStateMapping = {};
-    const actions = Object.assign({}, this.actions);
-    this._initializeState(actions, '_root', '_root');
-    this.actions._root = actions;
-  },
+  _stateNames: computed('_stateTaskNames', function() {
+    const stateTaskNames = this.get('_stateTaskNames');
+    return stateTaskNames.map(getStateNameFromStateTaskName);
+  }),
 
   _defaultStateMapping: undefined,
 
   init(...args) {
     this._super(...args);
-    this._initializeStateHierarchy();
-    this.getStateTask('_root').perform(true);
-    const stateTaskNames = this.get('stateTaskNames') ;
+    initializeStateHierarchy(this);
+    this._getStateTask('_root').perform(true);
+    const stateTaskNames = this.get('_stateTaskNames') ;
     Object.defineProperty(this, 'currentState', {
-      value: computed(...stateTaskNames.map(stateTask => `${stateTask}.isRunning`), this.getCurrentStateName),
+      value: computed(...stateTaskNames.map(stateTask => `${stateTask}.isRunning`), function() {
+        const stateTaskNames = this.get('_stateTaskNames');
+        const runningStateTaskName = stateTaskNames.find(
+          stateTaskName => this.get(`${stateTaskName}.isRunning`)
+        );
+        if (!runningStateTaskName) {
+          throw new Error(ERRORS.NO_RUNNING_STATE());
+        }
+        return getStateNameFromStateTaskName(runningStateTaskName);
+      }),
     });
     // kick off the computed properties
     this.get('state');
@@ -238,62 +272,23 @@ export default Ember.Mixin.create(Ember.Evented, {
   },
 
   transitionTo(stateName) {
-    if (!this.checkIfStateExists(stateName)) {
+    if (!this._checkIfStateExists(stateName)) {
       throw new Error(ERRORS.NO_SUCH_STATE(stateName));
     }
-    this.getStateTask(stateName).perform(true);
+    this._getStateTask(stateName).perform(true);
   },
 
-  getStateTask(stateName) {
+
+  _getStateTask(stateName) {
     return this.get(getStateTaskName(stateName));
   },
 
-  getDefaultStateName(stateName) {
+  _getDefaultStateName(stateName) {
     return this._defaultStateMapping[stateName];
   },
 
-  checkIfStateExists(stateName) {
-    const stateNames = this.get('stateNames');
+  _checkIfStateExists(stateName) {
+    const stateNames = this.get('_stateNames');
     return stateNames.includes(stateName);
   },
-
-  *_stateTaskFunction(stateName, shouldStartDefaultSubtask = true) {
-    if (stateName !== '_root') {
-      const superStateName = getSuperStateName(stateName);
-      const superState = this.getStateTask(superStateName);
-      if (!superState.get('isRunning')) {
-        // during transitions into a deeply nested structure the superstates will not
-        // be running so kick them off first
-        superState.perform(false);
-      }
-    }
-
-    const stateActions = this.get(`actions.${stateName}`) || {};
-    try {
-      this.trigger(`try_${stateName}`);
-      yield executeStateHook(this, stateActions._try);
-      if (shouldStartDefaultSubtask) {
-        const defaultStateName = this.getDefaultStateName(stateName);
-        if (defaultStateName) {
-          const defaultStateTask = this.getStateTask(defaultStateName);
-          // we're cascading down until we hit a leaf state
-          defaultStateTask.perform(true);
-        }
-      }
-      // never ending yield to keep the task running
-      yield Ember.RSVP.defer().promise;
-    } catch(e) {
-      // TODO: bubble the exception up
-      if (stateActions._catch) {
-        stateActions._catch(e);
-      } else {
-        throw e;
-      }
-    } finally {
-      // we are exiting so cancel the task group
-      this.get(getStateTaskGroupPropertyName(stateName)).cancelAll();
-      this.trigger(`finally_${stateName}`);
-      yield executeStateHook(this, stateActions._finally);
-    }
-  }
 });
