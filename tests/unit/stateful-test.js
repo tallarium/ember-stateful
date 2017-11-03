@@ -219,3 +219,26 @@ test('does not bubble actions if they don\'t return true', function (assert) {
     'B',
   ]);
 });
+
+test('all actions from the state machine exist in the actions hash', function (assert) {
+  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+    actions: {
+      action1: function() {},
+      A: {
+        _default: true,
+        action2: function() {},
+        B: {
+          action3: function() {},
+        },
+      },
+      X: {
+        action4: function() {},
+      },
+    }
+  });
+  let subject = StatefulObject.create();
+  for (const actionName of ['action1', 'action2', 'action3', 'action4']){
+    const action = subject.actions[actionName];
+    assert.equal(typeof(action), 'function');
+  }
+});
