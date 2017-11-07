@@ -1,8 +1,11 @@
 import Ember from 'ember';
+import RSVP from 'rsvp';
 import { task, taskGroup } from 'ember-concurrency';
 import ERRORS from 'ember-stateful/errors';
 
-const { computed } = Ember;
+const { computed, typeOf } = Ember;
+
+const { resolve } = RSVP;
 
 const WAIT_HERE_FOREVER = Ember.RSVP.defer().promise;
 
@@ -10,19 +13,38 @@ function isThenable(obj) {
   return obj && typeof(obj.then) === 'function';
 }
 
-function executeStateHook(target, hook, ...args) {
-  let ret;
-  if (hook) {
-    ret = hook.call(target, ...args);
+function isPromise(obj) {
+  return typeOf(obj.then) === 'function';
+}
+
+function isGenerator(obj) {
+  return typeOf(obj.next) === 'function' && typeOf(obj.throw) === 'function';
+}
+
+function isGeneratorFunction({ constructor }) {
+  return constructor && (
+      constructor.name === 'GeneratorFunction' ||
+	  constructor.displayName === 'GeneratorFunction' ||
+	  isGenerator(constructor.prototype)
+  );
+}
+
+function* executeStateHook(target, hook, ...args) {
+  if (!hook) {
+    return resolve();
   }
-  if (!isThenable(ret)) {
-    ret = Ember.RSVP.resolve();
+  if (hook && isGeneratorFunction(hook)) {
+    return yield* hook.call(target, ...args);
   }
-  return ret;
+  const ret = hook.call(target, ...args);
+  if (ret && isPromise(ret)) {
+    return ret;
+  }
+  return resolve();
 }
 
 function isReservedProperty(name) {
-  return ['_try', '_catch', '_finally', '_default'].includes(name)
+  return ['_try', '_catch', '_finally', '_default'].includes(name);
 }
 
 function isStateHash(name, obj) {
@@ -167,7 +189,7 @@ function* stateTaskFunction(target, stateName, shouldStartDefaultSubtask = true)
   const stateActions = target.get(`actions.${stateName}`) || {};
   try {
     target.trigger(`try_${stateName}`);
-    yield executeStateHook(target, stateActions._try);
+    yield* executeStateHook(target, stateActions._try);
     if (shouldStartDefaultSubtask) {
       const defaultStateName = target._getDefaultStateName(stateName);
       if (defaultStateName) {
@@ -181,7 +203,7 @@ function* stateTaskFunction(target, stateName, shouldStartDefaultSubtask = true)
   } catch(e) {
     // TODO: bubble the exception up
     if (stateActions._catch) {
-      yield executeStateHook(target, stateActions._catch, e);
+      yield* executeStateHook(target, stateActions._catch, e);
     } else {
       throw e;
     }
@@ -189,7 +211,7 @@ function* stateTaskFunction(target, stateName, shouldStartDefaultSubtask = true)
     // we are exiting so cancel the task group
     target.get(getStateTaskGroupPropertyName(stateName)).cancelAll();
     target.trigger(`finally_${stateName}`);
-    yield executeStateHook(target, stateActions._finally);
+    yield* executeStateHook(target, stateActions._finally);
   }
 }
 

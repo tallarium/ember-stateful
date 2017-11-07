@@ -38,7 +38,7 @@ export default Ember.Service.extend(Stateful, {
   actions: {
     offline: {
       _default: true,
-      _try() {
+      *_try() {
         log('entering state offline');
       },
       _finally() {
@@ -46,7 +46,7 @@ export default Ember.Service.extend(Stateful, {
       },
       disconnected: {
         _default: true,
-        _try() {
+        *_try() {
           log('entering state offline.disconnected');
         },
         _finally() {
