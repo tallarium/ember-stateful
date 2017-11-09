@@ -114,8 +114,8 @@ test('triggers events on state enter and exit', function(assert) {
   subject.transitionTo('X');
 
   assert.deepEqual(arr, [
-    'finally_A',
     'finally_A.B',
+    'finally_A',
     'try_X',
   ]);
 });

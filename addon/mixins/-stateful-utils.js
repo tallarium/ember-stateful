@@ -1,5 +1,5 @@
 import Ember from 'ember';
-import { task, taskGroup } from 'ember-concurrency';
+import { task } from 'ember-concurrency';
 import ERRORS from 'ember-stateful/errors';
 
 const WAIT_HERE_FOREVER = Ember.RSVP.defer().promise;
@@ -46,13 +46,6 @@ export function getStateTaskName(stateName) {
     return '_state_root';
   }
   return `_state_${stateName.split('.').join('_')}`;
-}
-
-function getStateTaskGroupPropertyName(stateName) {
-  if (stateName === '_root') {
-    return '_taskgroup_root';
-  }
-  return `_taskgroup_${stateName.split('.').join('_')}`;
 }
 
 export function isStateTaskName(name) {
@@ -102,18 +95,10 @@ function initializeState(target, stateHash, stateName, fullSuperStateName) {
   // initialize
   const fullStateName = getFullStateName(stateName, fullSuperStateName);
 
-  // create task group for potential substates of this task
-  target.set(getStateTaskGroupPropertyName(fullStateName), taskGroup().restartable());
-
   // create the state task
   let stateTask = task(function*(...args){
     yield* stateTaskFunction(target, fullStateName, ...args);
   });
-
-  // add the state task to the superstate task group
-  if (fullStateName !== '_root') {
-    stateTask = stateTask.group(getStateTaskGroupPropertyName(fullSuperStateName));
-  }
 
   // save task
   target.set(getStateTaskName(fullStateName), stateTask);
@@ -185,7 +170,6 @@ function* stateTaskFunction(target, stateName, shouldStartDefaultSubtask = true)
     }
   } finally {
     // we are exiting so cancel the task group
-    target.get(getStateTaskGroupPropertyName(stateName)).cancelAll();
     target.trigger(`finally_${stateName}`);
     yield executeStateHook(target, stateActions._finally);
   }

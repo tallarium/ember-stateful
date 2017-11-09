@@ -90,7 +90,23 @@ export default Ember.Mixin.create(Ember.Evented, {
       throw new Error(ERRORS.NO_SUCH_STATE(stateName));
     }
     const currentState = this.get('currentState');
-    const ancestor = utils.findYoungestCommonAncestor();
+    const ancestor = utils.findYoungestCommonAncestor(currentState, stateName);
+
+    const currentStateParts = currentState.split('.');
+    const ancestorParts = ancestor.split('.');
+
+    let finishLevel = ancestorParts.length;
+    if (ancestorParts[0] === '_root') {
+      finishLevel--;
+    }
+
+    // iterate from deepest to shallowest state for cancelation
+    for (let i = currentStateParts.length; i > finishLevel ; i--) {
+      const state = currentStateParts.slice(0, i).join('.');
+      const stateTask = this._getStateTask(state);
+      stateTask.cancelAll();
+    }
+
     this._getStateTask(stateName).perform(true);
   },
 
