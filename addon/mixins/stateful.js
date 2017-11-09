@@ -1,8 +1,9 @@
 import Ember from 'ember';
-import * as utils from './-stateful-utils';
 import ERRORS from 'ember-stateful/errors';
+import * as utils from './-stateful-utils';
 
 const { computed } = Ember;
+
 
 export default Ember.Mixin.create(Ember.Evented, {
   /**
@@ -88,6 +89,8 @@ export default Ember.Mixin.create(Ember.Evented, {
     if (!this._checkIfStateExists(stateName)) {
       throw new Error(ERRORS.NO_SUCH_STATE(stateName));
     }
+    const currentState = this.get('currentState');
+    const ancestor = utils.findYoungestCommonAncestor();
     this._getStateTask(stateName).perform(true);
   },
 

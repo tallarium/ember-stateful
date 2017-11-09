@@ -88,8 +88,8 @@ test('calls hooks in the proper order', function(assert) {
   assert.deepEqual(arr, [
     'A.try',
     'A.B.try',
-    'A.finally',
     'A.B.finally',
+    'A.finally',
     'X.try',
   ]);
 });
