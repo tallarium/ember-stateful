@@ -98,7 +98,7 @@ function initializeState(target, stateHash, stateName, fullSuperStateName) {
   // create the state task
   let stateTask = task(function*(...args){
     yield* stateTaskFunction(target, fullStateName, ...args);
-  });
+  }).drop();
 
   // save task
   target.set(getStateTaskName(fullStateName), stateTask);
