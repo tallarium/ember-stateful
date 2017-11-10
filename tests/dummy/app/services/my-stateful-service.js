@@ -1,5 +1,7 @@
 import Ember from 'ember';
-import Stateful from 'ember-stateful';
+import Stateful from 'ember-stateful/mixins/stateful';
+
+const { Logger: { log } } = Ember;
 
 /**
 
@@ -16,16 +18,16 @@ State Transition Diagram. Dotted lines indicate an asynchronous transition
     |                                     | :       |
     +---^--^------------------------------|-:-------+
         :  |                              | :
-        :  |lostConnection  lostConnection| :_enter
+        :  |lostConnection  lostConnection| :_try
         :  |                              | :
 +-------:--|--+------------+--------------+-v-----------+
 |       :  |  |            |                     online |
-| _enter:  |  |disconnect  |sync                        |
+| _try:  |  |disconnect  |sync                        |
 |       :  |  |            |                            |
 | +-----+--+--v---+   +----v----+        +-----------+  |
 | |               |   |         |        |           |  |
 | | disconnecting |   | syncing +........> connected <--+
-| |               |   |         | _enter |           |  |
+| |               |   |         | _try |           |  |
 | +---------------+   +---------+        +-----------+  |
 |                                                       |
 +-------------------------------------------------------+
@@ -33,102 +35,97 @@ State Transition Diagram. Dotted lines indicate an asynchronous transition
 
 export default Ember.Service.extend(Stateful, {
 
-  states: [
-    'offline.disconnected',
-    'offline.connecting',
-    'online.connected',
-    'online.syncing',
-    'online.disconnecting',
-  ],
-
   actions: {
     offline: {
-      _enter() {
-        console.log('entering state offline');
+      _default: true,
+      _try() {
+        log('entering state offline');
       },
-      _exit() {
-        console.log('exiting state offline');
+      _finally() {
+        log('exiting state offline');
       },
       disconnected: {
-        _enter() {
-          console.log('entering state offline.disconnected');
+        _default: true,
+        _try() {
+          log('entering state offline.disconnected');
         },
-        _exit() {
-          console.log('exiting state offline.disconnected');
+        _finally() {
+          log('exiting state offline.disconnected');
         },
         connect() {
-          console.log('connect')
+          log('connect')
           this.transitionTo('offline.connecting');
         },
       },
       connecting: {
-        _enter() {
-          console.log('entering state offline.connecting');
-          console.log('starting connection');
+        _try() {
+          log('entering state offline.connecting');
+          log('starting connection');
           this.set('connectTimer', Ember.run.later(this, 'transitionTo', 'online', 1000));
         },
-        _exit() {
-          console.log('exiting state offline.connecting');
+        _finally() {
+          log('exiting state offline.connecting');
           Ember.run.cancel(this.get('connectTimer'));
         },
         cancelConnect() {
-          console.log('cancelling connection')
+          log('cancelling connection')
           this.transitionTo('offline.disconnected');
         },
       },
     },
     online: {
-      _enter() {
-        console.log('entering state online');
+      _try() {
+        log('entering state online');
       },
-      _exit() {
-        console.log('exiting state online');
+      _finally() {
+        log('exiting state online');
         Ember.run.cancel(this.get('syncTimer'));
       },
       disconnect() {
-        console.log('disconnecting');
+        log('disconnecting');
         this.transitionTo('online.disconnecting');
       },
       sync() {
-        console.log('starting sync');
+        log('starting sync');
         this.transitionTo('online.syncing');
       },
       lostConnection() {
-        console.log('lost connection');
+        log('lost connection');
         this.transitionTo('offline.connecting');
       },
       connected: {
-        _enter() {
-          console.log('entering state online.connected');
+        _default: true,
+        _try() {
+          log('entering state online.connected');
         },
-        _exit() {
-          console.log('exiting state online.connected');
+        _finally() {
+          log('exiting state online.connected');
         },
       },
       syncing: {
-        _enter() {
-          console.log('entering state online.syncing');
+        _try() {
+          log('entering state online.syncing');
           this.set('syncTimer', Ember.run.later(this, function() {
-            console.log('finished sync');
+            log('finished sync');
             this.transitionTo('online.connected');
           }, 1000));
         },
-        _exit() {
-          console.log('exiting state online.syncing');
+        _finally() {
+          log('exiting state online.syncing');
         },
       },
       disconnecting: {
-        _enter() {
-          console.log('entering state online.disconnecting');
+        _try() {
+          log('entering state online.disconnecting');
           Ember.run.later(this, function() {
             this.transitionTo('offline');
           }, 500);
         },
-        _exit() {
-          console.log('exiting state online.disconnecting');
+        _finally() {
+          log('exiting state online.disconnecting');
         },
         lostConnection() {
-          console.log('lost connection');
+          log('lost connection');
           this.transitionTo('offline');
         },
       },

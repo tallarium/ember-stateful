@@ -1,35 +1,18 @@
 import Ember from 'ember';
-import Stateful from 'ember-stateful';
+import Stateful from 'ember-stateful/mixins/stateful';
+
+const { Logger: { log } } = Ember;
 
 export default Ember.Component.extend(Stateful, {
-
-  states: [
-    'off.dead',
-    'on.active.dancing',
-    'on.idle',
-    'on.active.walking',
-  ],
-
-  off: {
-
-    dead: {
-      _enter() {
-        console.log('entering state off.dead');
-      },
-      _exit() {
-        console.log('exiting state off.dead');
-      },
-    }
-  },
 
   actions: {
 
     doStuff(...args) {
-      console.log('root action', ...args);
+      log('root action', ...args);
     },
 
     bang() {
-      console.log('bang');
+      log('bang');
       this.send('doStuff', 'hello');
     },
 
@@ -38,66 +21,68 @@ export default Ember.Component.extend(Stateful, {
     },
 
     on: {
-      _enter() {
-        console.log('entering state on');
+      _try() {
+        log('entering state on');
       },
-      _exit() {
-        console.log('exiting state on');
+      _finally() {
+        log('exiting state on');
       },
       turnOn() {
-        console.log('already on');
+        log('already on');
       },
 
       idle: {
-        _enter() {
-          console.log('entering state on.idle');
+        _try() {
+          log('entering state on.idle');
         },
-        _exit() {
-          console.log('exiting state on.idle');
+        _finally() {
+          log('exiting state on.idle');
         },
         doStuff() {
-          console.log('idling');
-          console.log('becoming active');
+          log('idling');
+          log('becoming active');
           this.transitionTo('on.active');
         },
       },
 
       active: {
-        _enter() {
-          console.log('entering state on.active');
+        _default: true,
+        _try() {
+          log('entering state on.active');
         },
-        _exit() {
-          console.log('exiting state on.active');
+        _finally() {
+          log('exiting state on.active');
         },
         doStuff() {
-          console.log('activity');
+          log('activity');
         },
       },
     },
 
     off: {
-      _enter() {
-        console.log('entering state off');
+      _default: true,
+      _try() {
+        log('entering state off');
       },
-      _exit() {
-        console.log('exiting state off');
+      _finally() {
+        log('exiting state off');
       },
       turnOn() {
-        console.log('turning on');
+        log('turning on');
         return true;
       },
 
       doStuff(...args) {
-        console.log('off action', ...args);
+        log('off action', ...args);
         return true;
       },
 
       dead: {
-        _enter() {
-          console.log('entering state off.dead');
+        _try() {
+          log('entering state off.dead');
         },
-        _exit() {
-          console.log('exiting state off.dead');
+        _finally() {
+          log('exiting state off.dead');
         },
       },
     },
