@@ -242,3 +242,20 @@ test('all actions from the state machine exist in the actions hash', function (a
     assert.equal(typeof(action), 'function');
   }
 });
+
+test('does nothing if trying to transition to state we\'re already in', function(assert) {
+  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+    actions: {
+      A: {
+        _default: true,
+        B: {
+          _finally: () => assert.ok(false, 'should not execute this')
+        },
+      },
+    }
+  });
+  let subject = StatefulObject.create();
+
+  subject.transitionTo('A');
+  assert.ok(true, 'success');
+});

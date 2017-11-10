@@ -89,6 +89,11 @@ export default Ember.Mixin.create(Ember.Evented, {
     if (!this._checkIfStateExists(stateName)) {
       throw new Error(ERRORS.NO_SUCH_STATE(stateName));
     }
+    if (this.get(`state.${stateName}`)) {
+      // already in this state so can't transition
+      return;
+    }
+
     const currentState = this.get('currentState');
     const ancestor = utils.findYoungestCommonAncestor(currentState, stateName);
 
