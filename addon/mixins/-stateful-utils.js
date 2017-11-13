@@ -177,14 +177,11 @@ function* stateTaskFunction(target, stateName, shouldStartDefaultSubtask = true)
 
 export function findYoungestCommonAncestor(state1, state2) {
   // find the index of the first character after the common prefix
+  const [stateParts1, stateParts2] = [state1, state2].map(x => x.split('.'));
   let i;
-  for (i = 0; state1[i] !== undefined && state1[i] === state2[i]; i++) {
+  for (i = 0; stateParts1[i] !== undefined && stateParts1[i] === stateParts2[i]; i++) {
     ; // eslint-disable-line no-extra-semi
   }
-  // last character of common prefix is probably a dot so move one character back
-  if (state1[i-1] === '.') {
-    i--;
-  }
-  const youngestCommonAncestor = state1.slice(0, i);
+  const youngestCommonAncestor = stateParts1.slice(0, i).join('.');
   return youngestCommonAncestor === ''? '_root' : youngestCommonAncestor;
 }
