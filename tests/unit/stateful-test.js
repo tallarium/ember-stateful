@@ -97,18 +97,18 @@ test('calls hooks in the proper order', function(assert) {
 
 test('fires events in the correct order', async function(assert) {
   const arr = [];
-  const wait = (message) => new Ember.RSVP.Promise((resolve) => setTimeout(() => { console.log(message); resolve();}, 0));
+  const wait = () => new Ember.RSVP.Promise((resolve) => setTimeout(resolve, 0));
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
     actions: {
       A: {
         _default: true,
-        _try: () => wait('waited A'),
+        _try: wait,
         B: {
-          _try: () => wait('waited A.B'),
+          _try: wait,
         },
       },
       X: {
-        _try: () => wait('waited X'),
+        _try: wait,
       },
     },
   });
