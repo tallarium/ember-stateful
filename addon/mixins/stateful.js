@@ -1,6 +1,7 @@
 import Ember from 'ember';
 import ERRORS from 'ember-stateful/errors';
 import * as utils from './-stateful-utils';
+import { waitForState } from 'ember-stateful';
 
 const { computed } = Ember;
 
@@ -46,7 +47,6 @@ export default Ember.Mixin.create(Ember.Evented, {
   init(...args) {
     this._super(...args);
     utils.initializeStateHierarchy(this);
-    this._getStateTask('_root').perform(true);
     const stateTaskNames = this.get('_stateTaskNames') ;
     Object.defineProperty(this, 'currentState', {
       value: computed(...stateTaskNames.map(stateTask => `${stateTask}.isRunning`), function() {
@@ -60,6 +60,7 @@ export default Ember.Mixin.create(Ember.Evented, {
         return utils.getStateNameFromStateTaskName(runningStateTaskName);
       }),
     });
+    this._getStateTask('_root').perform(true);
     // kick off the computed properties
     this.get('state');
     this.get('currentState');
@@ -91,7 +92,7 @@ export default Ember.Mixin.create(Ember.Evented, {
     }
     if (this.get(`state.${stateName}`)) {
       // already in this state so can't transition
-      return;
+      return Ember.RSVP.resolve();
     }
 
     const currentState = this.get('currentState');
@@ -113,6 +114,7 @@ export default Ember.Mixin.create(Ember.Evented, {
     }
 
     this._getStateTask(stateName).perform(true);
+    return waitForState(this, stateName);
   },
 
 

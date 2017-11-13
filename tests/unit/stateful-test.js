@@ -2,6 +2,7 @@ import Ember from 'ember';
 import StatefulMixin from 'ember-stateful/mixins/stateful';
 import ERRORS from 'ember-stateful/errors';
 import { module, test } from 'qunit';
+import { waitForEnterState } from 'ember-stateful';
 
 module('Unit | Mixin | stateful');
 
@@ -92,6 +93,45 @@ test('calls hooks in the proper order', function(assert) {
     'A.finally',
     'X.try',
   ]);
+});
+
+test('fires events in the correct order', async function(assert) {
+  const arr = [];
+  const wait = (message) => new Ember.RSVP.Promise((resolve) => setTimeout(() => { console.log(message); resolve();}, 0));
+  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+    actions: {
+      A: {
+        _default: true,
+        _try: () => wait('waited A'),
+        B: {
+          _try: () => wait('waited A.B'),
+        },
+      },
+      X: {
+        _try: () => wait('waited X'),
+      },
+    },
+  });
+  let subject = StatefulObject.create();
+  for (const eventName of ['try_A', 'finally_A', 'try_A.B', 'finally_A.B', 'try_X', 'finally_X']) {
+    subject.on(eventName, () => arr.push(eventName));
+  }
+
+  await waitForEnterState(subject, 'A.B');
+  arr.length = 0;
+
+  await subject.transitionTo('X');
+  await subject.transitionTo('A.B');
+
+  assert.deepEqual(arr, [
+    'finally_A.B',
+    'finally_A',
+    'try_X',
+    'finally_X',
+    'try_A',
+    'try_A.B',
+  ]);
+
 });
 
 test('triggers events on state enter and exit', function(assert) {
