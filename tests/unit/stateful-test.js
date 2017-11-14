@@ -48,7 +48,7 @@ test('throws if default substate neither obvious nor specified explicitly', func
   assert.throws(StatefulObject.create, ERRORS.DEFAULT_SUBSTATE_NOT_DEFINED('_root'));
 });
 
-test('transitions to a different state', function(assert) {
+test('transitions to a different state', async function(assert) {
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
     actions: {
       A: {
@@ -58,12 +58,12 @@ test('transitions to a different state', function(assert) {
     }
   });
   let subject = StatefulObject.create();
-  subject.transitionTo('B');
+  await subject.transitionTo('B');
   assert.ok(subject.get('state.B'));
   assert.equal(subject.get('_state_A.isRunning'), false);
 });
 
-test('calls hooks in the proper order', function(assert) {
+test('calls hooks in the proper order', async function(assert) {
   const arr = [];
   const pushToArr = (arg) => () => arr.push(arg);
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
@@ -84,7 +84,7 @@ test('calls hooks in the proper order', function(assert) {
   });
   let subject = StatefulObject.create();
 
-  subject.transitionTo('X');
+  await subject.transitionTo('X');
 
   assert.deepEqual(arr, [
     'A.try',
@@ -134,7 +134,7 @@ test('fires events in the correct order', async function(assert) {
 
 });
 
-test('triggers events on state enter and exit', function(assert) {
+test('triggers events on state enter and exit', async function(assert) {
   const arr = [];
   let StatefulObject = Ember.Object.extend(StatefulMixin, {
     actions: {
@@ -151,7 +151,7 @@ test('triggers events on state enter and exit', function(assert) {
       subject.on(eventName, () => arr.push(eventName));
     }
   }
-  subject.transitionTo('X');
+  await subject.transitionTo('X');
 
   assert.deepEqual(arr, [
     'finally_A.B',
