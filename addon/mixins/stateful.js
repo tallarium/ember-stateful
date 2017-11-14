@@ -106,15 +106,24 @@ export default Ember.Mixin.create(Ember.Evented, {
       finishLevel--;
     }
 
+    let promiseChain = Ember.RSVP.resolve();
     // iterate from deepest to shallowest state for cancelation
-    for (let i = currentStateParts.length; i > finishLevel ; i--) {
-      const state = currentStateParts.slice(0, i).join('.');
-      const stateTask = this._getStateTask(state);
-      stateTask.cancelAll();
+    for (let i = currentStateParts.length; i > finishLevel; i--) {
+      let state = currentStateParts.slice(0, i).join('.');
+      promiseChain = promiseChain.then(() => {
+        const stateTask = this._getStateTask(state)
+        stateTask.cancelAll();
+        return stateTask.get('last'); // wait for task cancellation before cancelling more
+      }).catch((e) => {
+        if (!e.message.includes('.cancelAll() was explicitly called')) {
+          throw e;
+        }
+      })
     }
-
-    this._getStateTask(stateName).perform(true);
-    return waitForState(this, stateName);
+    return promiseChain.then(() => {
+      this._getStateTask(stateName).perform(true);
+      return waitForState(this, stateName);
+    });
   },
 
 
