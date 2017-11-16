@@ -1,6 +1,6 @@
 import Ember from 'ember';
 import ERRORS from 'ember-stateful/errors';
-import * as utils from './-stateful-utils';
+import * as utils from 'ember-stateful/utils/-utils';
 import { waitForState } from 'ember-stateful';
 
 const { computed } = Ember;
@@ -23,7 +23,7 @@ export default Ember.Mixin.create(Ember.Evented, {
   }),
 
   _stateTaskNames: computed(function () {
-    return Object.keys(this)
+    return Object.keys(Object.getPrototypeOf(this))
       .filter(utils.isStateTaskName)
       .map(key => ({
         key,
@@ -46,7 +46,6 @@ export default Ember.Mixin.create(Ember.Evented, {
 
   init(...args) {
     this._super(...args);
-    utils.initializeStateHierarchy(this);
     const stateTaskNames = this.get('_stateTaskNames') ;
     Object.defineProperty(this, 'currentState', {
       value: computed(...stateTaskNames.map(stateTask => `${stateTask}.isRunning`), function() {

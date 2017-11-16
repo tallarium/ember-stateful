@@ -1,6 +1,6 @@
 import Ember from 'ember';
-import StatefulMixin from 'ember-stateful/mixins/stateful';
 import waitForEnterState from 'ember-stateful/utils/wait-for-enter-state';
+import stateful from 'ember-stateful/utils/stateful';
 import ERRORS from 'ember-stateful/errors';
 import { timeout } from 'ember-concurrency';
 import { module, test } from 'qunit';
@@ -11,7 +11,7 @@ module('Unit | Util | waitForEnterState');
 
 // Replace this with your real tests.
 test('detects state enter', async function(assert) {
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       A: {
         _default: true,
@@ -19,7 +19,7 @@ test('detects state enter', async function(assert) {
       },
       X: {},
     }
-  });
+  }));
   let obj = StatefulObject.create();
   const waiting = waitForEnterState(obj, 'X');
   obj.transitionTo('X');
@@ -32,7 +32,7 @@ test('detects state enter', async function(assert) {
 });
 
 test('does not resolve if already in state', async function(assert) {
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       A: {
         _default: true,
@@ -40,7 +40,7 @@ test('does not resolve if already in state', async function(assert) {
       },
       X: {},
     }
-  });
+  }));
   let obj = StatefulObject.create();
   const result = await Ember.RSVP.race([
     waitForEnterState(obj, 'A.B'),
@@ -51,13 +51,13 @@ test('does not resolve if already in state', async function(assert) {
 });
 
 test('throws if state does not exist', async function(assert) {
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       A: {
         B: {},
       },
     }
-  });
+  }));
   const obj = StatefulObject.create();
   try {
     await waitForEnterState(obj, 'tommy');
