@@ -1,6 +1,6 @@
 {
   "name": "ember-stateful",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "A simple mixin to provide finite state machine semantics to Ember Components and Services.",
   "keywords": [
     "ember-addon",
