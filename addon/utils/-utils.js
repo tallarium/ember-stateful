@@ -97,11 +97,11 @@ function initializeState(target, stateHash, stateName, fullSuperStateName) {
 
   // create the state task
   let stateTask = task(function*(...args){
-    yield* stateTaskFunction(target, fullStateName, ...args);
+    yield* stateTaskFunction.call(this, fullStateName, ...args);
   }).drop();
 
   // save task
-  target.set(getStateTaskName(fullStateName), stateTask);
+  target[getStateTaskName(fullStateName)] = stateTask
 
   // find the default substate
   const defaultSubState = findDefaultSubState([fullStateName, stateHash]);
@@ -136,10 +136,10 @@ export function initializeStateHierarchy(target) {
   target.actions._root = actions;
 }
 
-function* stateTaskFunction(target, stateName, shouldStartDefaultSubtask = true) {
+function* stateTaskFunction(stateName, shouldStartDefaultSubtask = true) {
   if (stateName !== '_root') {
     const superStateName = getSuperStateName(stateName);
-    const superState = target._getStateTask(superStateName);
+    const superState = this._getStateTask(superStateName);
     if (!superState.get('isRunning')) {
       // during transitions into a deeply nested structure the superstates will not
       // be running so kick them off first
@@ -147,14 +147,14 @@ function* stateTaskFunction(target, stateName, shouldStartDefaultSubtask = true)
     }
   }
 
-  const stateActions = target.get(`actions.${stateName}`) || {};
+  const stateActions = this.get(`actions.${stateName}`) || {};
   try {
-    target.trigger(`try_${stateName}`);
-    yield executeStateHook(target, stateActions._try);
+    this.trigger(`try_${stateName}`);
+    yield executeStateHook(this, stateActions._try);
     if (shouldStartDefaultSubtask) {
-      const defaultStateName = target._getDefaultStateName(stateName);
+      const defaultStateName = this._getDefaultStateName(stateName);
       if (defaultStateName) {
-        const defaultStateTask = target._getStateTask(defaultStateName);
+        const defaultStateTask = this._getStateTask(defaultStateName);
         // we're cascading down until we hit a leaf state
         defaultStateTask.perform(true);
       }
@@ -164,14 +164,14 @@ function* stateTaskFunction(target, stateName, shouldStartDefaultSubtask = true)
   } catch(e) {
     // TODO: bubble the exception up
     if (stateActions._catch) {
-      yield executeStateHook(target, stateActions._catch, e);
+      yield executeStateHook(this, stateActions._catch, e);
     } else {
       throw e;
     }
   } finally {
     // we are exiting so cancel the task group
-    target.trigger(`finally_${stateName}`);
-    yield executeStateHook(target, stateActions._finally);
+    this.trigger(`finally_${stateName}`);
+    yield executeStateHook(this, stateActions._finally);
   }
 }
 

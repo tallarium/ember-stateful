@@ -1,7 +1,7 @@
-import * as utils from 'ember-stateful/mixins/-stateful-utils';
+import * as utils from 'ember-stateful/utils/-utils';
 import { module, test } from 'qunit';
 
-module('Unit | Mixin | stateful utils');
+module('Unit | Util | utils');
 
 test('finds youngest common state ancestor', function(assert) {
   let result = utils.findYoungestCommonAncestor('A.B.C', 'A.X.Y')

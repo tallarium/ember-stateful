@@ -1,62 +1,62 @@
 import Ember from 'ember';
-import StatefulMixin from 'ember-stateful/mixins/stateful';
 import ERRORS from 'ember-stateful/errors';
 import { module, test } from 'qunit';
-import { waitForEnterState } from 'ember-stateful';
+import waitForEnterState from 'ember-stateful/utils/wait-for-enter-state';
+import stateful from 'ember-stateful/utils/stateful';
 
-module('Unit | Mixin | stateful');
+module('Unit | Util | stateful');
 
 // Replace this with your real tests.
 test('it initializes correctly with empty actions hash', function(assert) {
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {}
-  });
+  }));
   let subject = StatefulObject.create();
   assert.ok(subject);
 });
 
 test('transitions to default state', function(assert) {
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       A: {}
     }
-  });
+  }));
   let subject = StatefulObject.create();
   assert.ok(subject.get('state.A'))
 });
 
 test('transitions to default state specified explicitly', function(assert) {
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       A: {},
       B: {
         _default: true,
       }
     }
-  });
+  }));
   let subject = StatefulObject.create();
   assert.ok(subject.get('state.B'))
 });
 
 test('throws if default substate neither obvious nor specified explicitly', function(assert) {
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  const decorate = () => stateful({
     actions: {
       A: {},
       B: {},
     }
   });
-  assert.throws(StatefulObject.create, ERRORS.DEFAULT_SUBSTATE_NOT_DEFINED('_root'));
+  assert.throws(decorate, ERRORS.DEFAULT_SUBSTATE_NOT_DEFINED('_root'));
 });
 
 test('transitions to a different state', async function(assert) {
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       A: {
         _default: true,
       },
       B: {},
     }
-  });
+  }));
   let subject = StatefulObject.create();
   await subject.transitionTo('B');
   assert.ok(subject.get('state.B'));
@@ -66,7 +66,7 @@ test('transitions to a different state', async function(assert) {
 test('calls hooks in the proper order', async function(assert) {
   const arr = [];
   const pushToArr = (arg) => () => arr.push(arg);
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       A: {
         _default: true,
@@ -81,7 +81,7 @@ test('calls hooks in the proper order', async function(assert) {
         _try: pushToArr('X.try'),
       },
     }
-  });
+  }));
   let subject = StatefulObject.create();
 
   await subject.transitionTo('X');
@@ -98,7 +98,7 @@ test('calls hooks in the proper order', async function(assert) {
 test('fires events in the correct order', async function(assert) {
   const arr = [];
   const wait = () => new Ember.RSVP.Promise((resolve) => setTimeout(resolve, 0));
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       A: {
         _default: true,
@@ -111,7 +111,7 @@ test('fires events in the correct order', async function(assert) {
         _try: wait,
       },
     },
-  });
+  }));
   let subject = StatefulObject.create();
   for (const eventName of ['try_A', 'finally_A', 'try_A.B', 'finally_A.B', 'try_X', 'finally_X']) {
     subject.on(eventName, () => arr.push(eventName));
@@ -136,7 +136,7 @@ test('fires events in the correct order', async function(assert) {
 
 test('triggers events on state enter and exit', async function(assert) {
   const arr = [];
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       A: {
         _default: true,
@@ -144,7 +144,7 @@ test('triggers events on state enter and exit', async function(assert) {
       },
       X: {},
     }
-  });
+  }));
   let subject = StatefulObject.create();
   for (const stateName of ['A', 'A.B', 'X']) {
     for (const eventName of ['try', 'finally'].map((hook => `${hook}_${stateName}`))) {
@@ -161,19 +161,19 @@ test('triggers events on state enter and exit', async function(assert) {
 });
 
 test('throws error when transitioning to nonexistent state', function(assert) {
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       A: {
         B: {},
       },
     }
-  });
+  }));
   let subject = StatefulObject.create();
   assert.throws(() => subject.transitionTo('X'), ERRORS.NO_SUCH_STATE('X'));
 });
 
 test('waits for hook promises', function(assert) {
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       A: {
         _default: true,
@@ -182,14 +182,14 @@ test('waits for hook promises', function(assert) {
       },
       X: {},
     }
-  });
+  }));
   let subject = StatefulObject.create();
   assert.ok(subject.get('state.A'));
   assert.notOk(subject.get('state.A.B'));
 });
 
 test('does not allow actions from other states', function (assert) {
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       A: {
         _default: true,
@@ -199,14 +199,14 @@ test('does not allow actions from other states', function (assert) {
         someAction() {},
       },
     }
-  });
+  }));
   let subject = StatefulObject.create();
   assert.throws(() => subject.send('someAction'), ERRORS.NO_ROOT_ACTION('someAction', subject));
 });
 
 test('bubbles actions up if they return true', function (assert) {
   const arr = [];
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       someAction(){
         arr.push('root');
@@ -224,7 +224,7 @@ test('bubbles actions up if they return true', function (assert) {
         },
       },
     },
-  });
+  }));
   let subject = StatefulObject.create();
   subject.send('someAction');
   assert.deepEqual(arr, [
@@ -236,7 +236,7 @@ test('bubbles actions up if they return true', function (assert) {
 
 test('does not bubble actions if they don\'t return true', function (assert) {
   const arr = [];
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       someAction(){
         arr.push('root');
@@ -252,7 +252,7 @@ test('does not bubble actions if they don\'t return true', function (assert) {
         },
       },
     },
-  });
+  }));
   let subject = StatefulObject.create();
   subject.send('someAction');
   assert.deepEqual(arr, [
@@ -261,7 +261,7 @@ test('does not bubble actions if they don\'t return true', function (assert) {
 });
 
 test('all actions from the state machine exist in the actions hash', function (assert) {
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       action1: function() {},
       A: {
@@ -275,7 +275,7 @@ test('all actions from the state machine exist in the actions hash', function (a
         action4: function() {},
       },
     }
-  });
+  }));
   let subject = StatefulObject.create();
   for (const actionName of ['action1', 'action2', 'action3', 'action4']){
     const action = subject.actions[actionName];
@@ -284,7 +284,7 @@ test('all actions from the state machine exist in the actions hash', function (a
 });
 
 test('does nothing if trying to transition to state we\'re already in', function(assert) {
-  let StatefulObject = Ember.Object.extend(StatefulMixin, {
+  let StatefulObject = Ember.Object.extend(stateful({
     actions: {
       A: {
         _default: true,
@@ -293,7 +293,7 @@ test('does nothing if trying to transition to state we\'re already in', function
         },
       },
     }
-  });
+  }));
   let subject = StatefulObject.create();
 
   subject.transitionTo('A');

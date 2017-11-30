@@ -1,9 +1,9 @@
 import Ember from 'ember';
-import Stateful from 'ember-stateful/mixins/stateful';
+import stateful from 'ember-stateful';
 
 const { Logger: { log } } = Ember;
 
-export default Ember.Component.extend(Stateful, {
+export default Ember.Component.extend(stateful({
 
   actions: {
 
@@ -87,4 +87,4 @@ export default Ember.Component.extend(Stateful, {
       },
     },
   },
-});
+}));

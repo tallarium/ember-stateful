@@ -1,5 +1,5 @@
 import Ember from 'ember';
-import Stateful from 'ember-stateful/mixins/stateful';
+import stateful from 'ember-stateful';
 
 const { Logger: { log } } = Ember;
 
@@ -33,7 +33,7 @@ State Transition Diagram. Dotted lines indicate an asynchronous transition
 +-------------------------------------------------------+
  */
 
-export default Ember.Service.extend(Stateful, {
+export default Ember.Service.extend(stateful({
 
   actions: {
     offline: {
@@ -131,4 +131,4 @@ export default Ember.Service.extend(Stateful, {
       },
     },
   },
-});
+}));
