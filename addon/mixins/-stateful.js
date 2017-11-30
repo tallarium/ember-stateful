@@ -2,6 +2,7 @@ import Ember from 'ember';
 import ERRORS from 'ember-stateful/errors';
 import * as utils from 'ember-stateful/utils/-utils';
 import { waitForState } from 'ember-stateful';
+import { didCancel } from 'ember-concurrency';
 
 const { computed } = Ember;
 
@@ -114,7 +115,8 @@ export default Ember.Mixin.create(Ember.Evented, {
         stateTask.cancelAll();
         return stateTask.get('last'); // wait for task cancellation before cancelling more
       }).catch((e) => {
-        if (!e.message.includes('.cancelAll() was explicitly called')) {
+        if (!didCancel(e)) {
+          // cancelation is okay, rethrow error otherwise
           throw e;
         }
       })
