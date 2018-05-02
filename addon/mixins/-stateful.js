@@ -4,7 +4,7 @@ import * as utils from 'ember-stateful/utils/-utils';
 import { waitForState } from 'ember-stateful';
 import { didCancel } from 'ember-concurrency';
 
-const { computed } = Ember;
+const { computed, defineProperty } = Ember;
 
 
 export default Ember.Mixin.create(Ember.Evented, {
@@ -48,18 +48,16 @@ export default Ember.Mixin.create(Ember.Evented, {
   init(...args) {
     this._super(...args);
     const stateTaskNames = this.get('_stateTaskNames') ;
-    Object.defineProperty(this, 'currentState', {
-      value: computed(...stateTaskNames.map(stateTask => `${stateTask}.isRunning`), function() {
-        const stateTaskNames = this.get('_stateTaskNames');
-        const runningStateTaskName = stateTaskNames.find(
-          stateTaskName => this.get(`${stateTaskName}.isRunning`)
-        );
-        if (!runningStateTaskName) {
-          throw new Error(ERRORS.NO_RUNNING_STATE());
-        }
-        return utils.getStateNameFromStateTaskName(runningStateTaskName);
-      }),
-    });
+    defineProperty(this, 'currentState', computed(...stateTaskNames.map(stateTask => `${stateTask}.isRunning`), function() {
+      const stateTaskNames = this.get('_stateTaskNames');
+      const runningStateTaskName = stateTaskNames.find(
+        stateTaskName => this.get(`${stateTaskName}.isRunning`)
+      );
+      if (!runningStateTaskName) {
+        throw new Error(ERRORS.NO_RUNNING_STATE());
+      }
+      return utils.getStateNameFromStateTaskName(runningStateTaskName);
+    }));
     this._getStateTask('_root').perform(true);
     // kick off the computed properties
     this.get('state');
